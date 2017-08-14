@@ -2,7 +2,7 @@ package com.ceo.reckless;
 
 public class Env {
 
-    public static boolean DEBUG = true;
+    public static boolean DEBUG = false;
 
     public static int MACD_PERIOD_FAST = 12;
     public static int MACD_PERIOD_LOW = 26;

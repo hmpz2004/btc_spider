@@ -8,6 +8,7 @@ import com.ceo.reckless.strategy.DualThrust;
 import com.ceo.reckless.strategy.RBreaker;
 import com.ceo.reckless.utils.LogUtils;
 
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,7 +17,9 @@ import java.util.Map;
 
 public class MarketWaveMotionScanner {
 
-    public static boolean DEBUG_OUTPUT = true;
+    private static boolean DEBUG_OUTPUT = false;
+
+    private static long TOP_DEVIATION_INTERVAL = 24 * 3600 * 1000L;
 
     public static void scanDeviation(String market, String coin, int type, long since, long endTime, String outputFileName) {
         String result = SosobtcDataHelper.httpQueryKData(market, coin, type, since);
@@ -170,10 +173,14 @@ public class MarketWaveMotionScanner {
                 double macdLboValue = topPercentValueList.get(topPercentValueList.size() - 2);
                 double kLstValue = timeKMap.get(topTimeList.get(topTimeList.size() - 1)).high;
                 double kLboValue = timeKMap.get(topTimeList.get(topTimeList.size() - 2)).high;
-                if (kLstValue > kLboValue && macdLstValue <= macdLboValue) {
+                long timeDiff = Math.abs(timeLst - timeLbo);
+                if (kLstValue > kLboValue && macdLstValue <= macdLboValue && timeDiff < TOP_DEVIATION_INTERVAL) {
                     // 发生背离
                     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-                    LogUtils.logDebugLine("top deviation!!! " + sdf.format(timeLst) + " " + sdf.format(timeLbo) + " top list 最后一个value " + kLstValue + " top list倒数第二个value " + kLboValue + " macd最后一个value " + macdLstValue + " macd倒数第二个value " + macdLboValue);
+                    LogUtils.logDebugLine(sdf.format(timeLst) + " " + sdf.format(timeLbo) + " top list 最后一个value " + kLstValue + " top list倒数第二个value " + kLboValue + " macd最后一个value " + macdLstValue + " macd倒数第二个value " + macdLboValue);
+                    LogUtils.logDebugLine("top deviation!!!");
+                } else {
+                    LogUtils.logDebugLine("nothing");
                 }
             } else {
                 LogUtils.logDebugLine("less than 2 top value");
@@ -203,8 +210,22 @@ public class MarketWaveMotionScanner {
         RBreakerEntity rbe = RBreaker.genPivotPoints(keList);
         DualThrustEntity dte = DualThrust.genDualThrustPoints(keList);
         LogUtils.logDebugLine("=============Resistance Support=============");
-        LogUtils.logDebugLine("r-breaker  : R1 " + rbe.R1 + " R2 " + rbe.R2 + " R3 " + rbe.R3 + " pivot " + rbe.pivot + " S1 " + rbe.S1 + " S2 " + rbe.S2 + " S3 " + rbe.S3);
-        LogUtils.logDebugLine("dual thrust: open " + dte.open + " upper " + dte.upperLane + " bottom " + dte.bottomLane);
+        DecimalFormat df = new DecimalFormat("#.00");
+        // LogUtils.logDebugLine("r-breaker  : R1 " + df.format(rbe.R1) + " R2 " + df.format(rbe.R2) + " R3 " + df.format(rbe.R3) + " pivot " + df.format(rbe.pivot) + " S1 " + df.format(rbe.S1) + " S2 " + df.format(rbe.S2) + " S3 " + df.format(rbe.S3));
+        LogUtils.logDebugLine("r-breaker :");
+        LogUtils.logDebugLine("   R3     " + df.format(rbe.R3));
+        LogUtils.logDebugLine("   R2     " + df.format(rbe.R2));
+        LogUtils.logDebugLine("   R1     " + df.format(rbe.R1));
+        LogUtils.logDebugLine("   pivot  " + df.format(rbe.pivot));
+        LogUtils.logDebugLine("   S1     " + df.format(rbe.S1));
+        LogUtils.logDebugLine("   S2     " + df.format(rbe.S2));
+        LogUtils.logDebugLine("   S3     " + df.format(rbe.S3));
+
+        // LogUtils.logDebugLine("dual thrust : open " + dte.open + " upper " + dte.upperLane + " bottom " + dte.bottomLane);
+        LogUtils.logDebugLine("dual thrust :");
+        LogUtils.logDebugLine("   open   " + dte.open);
+        LogUtils.logDebugLine("   upper  " + dte.upperLane);
+        LogUtils.logDebugLine("   bottom " + dte.bottomLane);
 
     }
 }

@@ -55,7 +55,9 @@ public class TalibHelper {
             return null;
         }
 
-        LogUtils.logDebugLine("outBegIdx " + outBegIdx.value + " outNBElement " + outNBElement.value);
+        if (Env.DEBUG) {
+            LogUtils.logDebugLine("outBegIdx " + outBegIdx.value + " outNBElement " + outNBElement.value);
+        }
 
         MACDEntity result = new MACDEntity();
         result.timeArray = new long[keList.size()];

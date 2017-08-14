@@ -96,7 +96,7 @@ public class Main {
 
             new FundingDistributionScanner(needDecimal, price_formatter, baseDivisor, htmlTitle).genFundingChart(market, coin, typeNum, since, outputName);
         } else {
-            LogUtils.logDebugLine("funding usage:\n -m yunbi -c eos -t 5m -s 1502382000 -o output.html");
+            LogUtils.logDebugLine("funding usage:\n -m yunbi -c eos -t 5m -s 1502382000 -d \"#.00\" -o output.html");
         }
     }
 
@@ -111,48 +111,49 @@ public class Main {
 
     private static void releaseMain(String[] args) {
 
-        if (Env.DEBUG) {
+        CommandLineParser parser = new BasicParser();
+        Options options = new Options();
+        options.addOption("h", "help", false, "Print this usage information");
+        options.addOption("v", "verbose", false, "Print out VERBOSE information");
+        options.addOption("f", "function", true, "Print out VERBOSE information");
+        options.addOption("m", "market", true, "");
+        options.addOption("c", "coin", true, "");
+        options.addOption("t", "time type", true, "");
+        options.addOption("s", "since", true, "");
+        options.addOption("d", "divisor", true, "");
+        options.addOption("o", "output file name", true, "File to save program output to");
+        options.addOption("e", "endtime", true, "");
 
-        } else {
-            CommandLineParser parser = new BasicParser();
-            Options options = new Options();
-            options.addOption("h", "help", false, "Print this usage information");
-            options.addOption("v", "verbose", false, "Print out VERBOSE information");
-            options.addOption("f", "function", false, "Print out VERBOSE information");
-            options.addOption("m", "market", true, "");
-            options.addOption("c", "coin", true, "");
-            options.addOption("t", "time type", true, "");
-            options.addOption("s", "since", true, "");
-            options.addOption("d", "divisor", true, "");
-            options.addOption("o", "output file name", true, "File to save program output to");
-
-            try {
-                CommandLine cmd = parser.parse(options, args);
-                if (cmd.hasOption("h")) {
-                    LogUtils.logDebugLine("usage :\njava -jar parser.jar -f funding -m yunbi -c eos -t 5m -s 1502382000 -o output.html\n -f means function (funding,top_deviation,resistance_support)");
-                } else if (cmd.hasOption("v")) {
-                    LogUtils.logDebugLine("version : 1.0 by 霸道总裁预科班\nwx:417249073");
-                } else if (cmd.hasOption("f")) {
-                    String functionString = cmd.getOptionValue("f");
-                    switch (functionString) {
-                        case "funding" :
-                            callFunding(cmd);
-                            break;
-                        case "top_deviation":
-                            callTopDeviation(cmd);
-                            break;
-                        case "resistance_support":
-                            callResistanceSupport(cmd);
-                    }
-
+        try {
+            CommandLine cmd = parser.parse(options, args);
+            if (cmd.hasOption("h")) {
+                outputUsage();
+            } else if (cmd.hasOption("v")) {
+                LogUtils.logDebugLine("version : 1.1 by 霸道总裁预科班\nwx:417249073");
+            } else if (cmd.hasOption("f")) {
+                String functionString = cmd.getOptionValue("f");
+                switch (functionString) {
+                    case "funding" :
+                        callFunding(cmd);
+                        break;
+                    case "top_deviation":
+                        callTopDeviation(cmd);
+                        break;
+                    case "resistance_support":
+                        callResistanceSupport(cmd);
                 }
-                if (cmd.getOptions().length == 0) {
-                    LogUtils.logDebugLine("usage :\njava -jar parser.jar -m yunbi -c eos -t 5m -s 1502382000 -o output.html");
-                }
-            } catch (ParseException e) {
-                LogUtils.logError(e);
+
             }
+            if (cmd.getOptions().length == 0) {
+                outputUsage();
+            }
+        } catch (ParseException e) {
+            LogUtils.logError(e);
         }
+    }
+
+    private static void outputUsage() {
+        LogUtils.logDebugLine("usage :\njava -jar parser.jar -f funding -m yunbi -c eos -t 5m -s 1502382000 -o output.html\n -f means function (funding,top_deviation,resistance_support)");
     }
 
     public static void main(String args[]) {

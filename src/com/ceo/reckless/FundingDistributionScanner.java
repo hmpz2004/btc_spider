@@ -148,7 +148,9 @@ public class FundingDistributionScanner {
         if (result != null && result.length() != 0) {
             List<KEntity> keList = SosobtcDataHelper.parseKlineToList(result);
             Map<Double, BigDecimal> priceMap = calculateFundingDistribution(keList, since);
-            outputMapToConsole(priceMap);
+            if (Env.DEBUG) {
+                outputMapToConsole(priceMap);
+            }
             outputHtmlBarChart(priceMap, outputFileName);
             LogUtils.logDebugLine("done!");
         } else {
