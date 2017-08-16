@@ -19,11 +19,31 @@ public class MarketWaveMotionScanner {
 
     private static boolean DEBUG_OUTPUT = false;
 
+    private static long VALID_DEVIATION_INTERVAL = 4 * 3600 * 1000L;
+
     private static long TOP_DEVIATION_INTERVAL = 24 * 3600 * 1000L;
 
-    public static void scanDeviation(String market, String coin, int type, long since, long endTime, String outputFileName) {
+    private static long BOTTOM_DEVIATION_INTERVAL = 24 * 3600 * 1000L;
+
+    public static final String KEY_TOP_DEVIATION = "top_deviation";
+
+    public static final String KEY_BOTTOM_DEVIATION = "bottom_deviation";
+
+    /**
+     * 路径用于输出测试报表
+     * @param market
+     * @param coin
+     * @param type
+     * @param since
+     * @param endTime
+     * @param outputFileName
+     */
+    public static void scanDeviation(String market, String coin, int type, long since, long endTime, String outputFileName, Map<String, String> deviationResultMap) {
         String result = SosobtcDataHelper.httpQueryKData(market, coin, type, since);
         List<KEntity> keList = SosobtcDataHelper.parseKlineToList(result);
+        if (keList == null || keList.size() == 0) {
+            return;
+        }
 
         // 根据截止时间筛选k线数据
         if (endTime == 0) {
@@ -174,16 +194,106 @@ public class MarketWaveMotionScanner {
                 double kLstValue = timeKMap.get(topTimeList.get(topTimeList.size() - 1)).high;
                 double kLboValue = timeKMap.get(topTimeList.get(topTimeList.size() - 2)).high;
                 long timeDiff = Math.abs(timeLst - timeLbo);
-                if (kLstValue > kLboValue && macdLstValue <= macdLboValue && timeDiff < TOP_DEVIATION_INTERVAL) {
+                long timeDiffCurLast = Math.abs(System.currentTimeMillis() - timeLst);
+                if (kLstValue > kLboValue && macdLstValue <= macdLboValue && timeDiff < TOP_DEVIATION_INTERVAL && timeDiffCurLast < VALID_DEVIATION_INTERVAL) {
                     // 发生背离
                     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-                    LogUtils.logDebugLine(sdf.format(timeLst) + " " + sdf.format(timeLbo) + " top list 最后一个value " + kLstValue + " top list倒数第二个value " + kLboValue + " macd最后一个value " + macdLstValue + " macd倒数第二个value " + macdLboValue);
+                    LogUtils.logDebugLine(">>" + market + " " + coin + "<<");
+                    LogUtils.logDebugLine(sdf.format(timeLbo) + " --> " + sdf.format(timeLst));
+                    LogUtils.logDebugLine("lbo high " + kLboValue + " macd " + macdLboValue);
+                    LogUtils.logDebugLine("lst high " + kLstValue + " macd " + macdLstValue);
                     LogUtils.logDebugLine("top deviation!!!");
+
+                    if (deviationResultMap != null) {
+                        String deviationValue = null;
+                        if (deviationResultMap.containsKey(KEY_TOP_DEVIATION)) {
+                            deviationValue = deviationResultMap.get(KEY_TOP_DEVIATION);
+                        }
+                        deviationValue = (deviationValue == null ? "" : deviationValue);
+                        deviationResultMap.put(KEY_TOP_DEVIATION, deviationValue + " " + coin);
+                    }
                 } else {
                     LogUtils.logDebugLine("nothing");
                 }
             } else {
                 LogUtils.logDebugLine("less than 2 top value");
+            }
+
+            /**
+             * 判断底背离
+             */
+            if (bottomTimeList.size() >= 2) {
+                long timeLst = bottomTimeList.get(bottomTimeList.size() - 1);
+                long timeLbo = bottomTimeList.get(bottomTimeList.size() - 2);
+                double macdLstPercentValue = bottomPercentValueList.get(bottomPercentValueList.size() - 1);
+                double macdLboPercentValue = bottomPercentValueList.get(bottomPercentValueList.size() - 2);
+                double kLstValue = timeKMap.get(bottomTimeList.get(bottomTimeList.size() - 1)).low;
+                double kLboValue = timeKMap.get(bottomTimeList.get(bottomTimeList.size() - 2)).low;
+                long timeDiff = Math.abs(timeLst - timeLbo);
+                long timeDiffCurLast = Math.abs(System.currentTimeMillis() - timeLst);
+
+                if (timeDiff < BOTTOM_DEVIATION_INTERVAL && timeDiffCurLast < VALID_DEVIATION_INTERVAL) {
+                    if (kLstValue < kLboValue && macdLstPercentValue >= macdLboPercentValue) {
+                        // 发生背离(高低->低高背离)
+                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+                        LogUtils.logDebugLine(">>" + market + " " + coin + "<<");
+                        LogUtils.logDebugLine(sdf.format(timeLbo) + " --> " + sdf.format(timeLst));
+                        LogUtils.logDebugLine("lbo high " + kLboValue + " macd " + macdLboPercentValue);
+                        LogUtils.logDebugLine("lst high " + kLstValue + " macd " + macdLstPercentValue);
+                        LogUtils.logDebugLine("bottom deviation!!!");
+
+                        if (deviationResultMap != null) {
+                            String deviationValue = null;
+                            if (deviationResultMap.containsKey(KEY_BOTTOM_DEVIATION)) {
+                                deviationValue = deviationResultMap.get(KEY_BOTTOM_DEVIATION);
+                            }
+                            deviationValue = (deviationValue == null ? "" : deviationValue);
+                            deviationResultMap.put(KEY_BOTTOM_DEVIATION, deviationValue + " " + coin);
+                        }
+                    } else if (kLstValue > kLboValue && macdLstPercentValue > macdLboPercentValue) {
+                        // 倒序遍历得到两个地点之间的最高k线high
+                        double tmpMax = 0;
+                        double tmpMin = 9999999;
+                        int idx = keList.size() - 1;
+                        for (; idx > 0; idx--) {
+                            KEntity ke = keList.get(idx);
+                            if (ke.timestamp < timeLbo) {
+                                break;
+                            }
+                            if (ke.high > tmpMax) {
+                                tmpMax = ke.high;
+                            } else if (ke.low < tmpMin) {
+                                tmpMin = ke.low;
+                            }
+                        }
+
+                        double kLstPercent = (tmpMax - kLstValue) / (tmpMax - tmpMin);
+                        double kLboPercent = (tmpMax - kLboValue) / (tmpMax - tmpMin);
+                        double kPercentDiff = Math.abs(kLstPercent - kLboPercent);
+                        double macdPercentDiff = Math.abs(macdLstPercentValue - macdLboPercentValue);
+                        if (kPercentDiff > macdPercentDiff * 1.2) {
+                            // 发生背离(高低->高低背离,趋势相同k线变化大macd变化小)
+                            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+                            LogUtils.logDebugLine(">>" + market + " " + coin + "<<");
+                            LogUtils.logDebugLine(sdf.format(timeLbo) + " --> " + sdf.format(timeLst));
+                            LogUtils.logDebugLine("lbo high " + kLboValue + " macd " + macdLboPercentValue);
+                            LogUtils.logDebugLine("lst high " + kLstValue + " macd " + macdLstPercentValue);
+                            LogUtils.logDebugLine("bottom deviation!!!");
+
+                            if (deviationResultMap != null) {
+                                String deviationValue = null;
+                                if (deviationResultMap.containsKey(KEY_BOTTOM_DEVIATION)) {
+                                    deviationValue = deviationResultMap.get(KEY_BOTTOM_DEVIATION);
+                                }
+                                deviationValue = (deviationValue == null ? "" : deviationValue);
+                                deviationResultMap.put(KEY_BOTTOM_DEVIATION, deviationValue + " " + coin + "(weak)");
+                            }
+                        }
+                    }
+                }
+
+            } else {
+                LogUtils.logDebugLine("less than 2 bottom value");
             }
 
             if (outputFileName != null) {
