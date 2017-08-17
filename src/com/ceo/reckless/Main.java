@@ -4,6 +4,7 @@ import com.ceo.reckless.helper.SosobtcDataHelper;
 import com.ceo.reckless.utils.LogUtils;
 import org.apache.commons.cli.*;
 
+import java.text.DecimalFormat;
 import java.util.*;
 
 public class Main {
@@ -144,6 +145,74 @@ public class Main {
         }
     }
 
+    static class ValueComparator implements Comparator<String> {
+
+        Map<String, Double> base;
+        public ValueComparator(Map<String, Double> base) {
+            this.base = base;
+        }
+
+        // Note: this comparator imposes orderings that are inconsistent with equals.
+        public int compare(String a, String b) {
+            if (base.get(a) >= base.get(b)) {
+                return -1;
+            } else {
+                return 1;
+            } // returning 0 would merge keys
+        }
+    }
+
+    private static void callIncreaseDrop(CommandLine cmd) {
+
+        if (cmd.hasOption("m") &&
+                cmd.hasOption("o")) {
+            String market = cmd.getOptionValue("m");
+            String outputName = cmd.getOptionValue("o");
+            if (marketCoinMap.containsKey(market)) {
+
+                Map<String, Double> increaseMap = new TreeMap<>();
+                ValueComparator vcIncrease = new ValueComparator(increaseMap);
+                TreeMap<String,Double> sortedIncreaseMap = new TreeMap<String,Double>(vcIncrease);
+
+                Map<String, Double> dropMap = new HashMap<>();
+                ValueComparator vcDrop = new ValueComparator(dropMap);
+                TreeMap<String,Double> sortedDropMap = new TreeMap<String,Double>(vcDrop);
+
+                Set<String> marketCoinSet = marketCoinMap.get(market);
+                Iterator<String> iter = marketCoinSet.iterator();
+                String coin = null;
+                while (iter.hasNext() && (coin = iter.next()) != null) {
+                    MarketWaveMotionScanner.scanDropIncreasePercent(market, coin, outputName, increaseMap, dropMap);
+                }
+
+                // 排序
+                sortedIncreaseMap.putAll(increaseMap);
+                sortedDropMap.putAll(dropMap);
+
+                LogUtils.logDebugLine("------------------------------\n");
+                LogUtils.logDebugLine("increase : ");
+                DecimalFormat df = new DecimalFormat("#.00");
+                for (Map.Entry<String, Double> entry : sortedIncreaseMap.entrySet()) {
+                    double value = entry.getValue();
+                    value *= 100;
+                    LogUtils.logDebugLine(" " + entry.getKey() + " " + Integer.valueOf(String.valueOf((int) value)));
+                }
+                LogUtils.logDebugLine("");
+                LogUtils.logDebugLine("drop : ");
+                for (Map.Entry<String, Double> entry : sortedDropMap.entrySet()) {
+                    double value = entry.getValue();
+                    value *= 100;
+                    LogUtils.logDebugLine(" " + entry.getKey() + " " + Integer.valueOf(String.valueOf((int) value)));
+                }
+                LogUtils.logDebugLine("");
+            } else {
+                LogUtils.logDebugLine("market error");
+            }
+        } else {
+            LogUtils.logDebugLine("increase_drop usage:\n -i a -m yunbi -o yunbi_ins.html");
+        }
+    }
+
     private static void testMain(String args[]) {
         MarketWaveMotionScanner.scanDeviation("huobi", "btc", SosobtcDataHelper.TYPE_LEVEL_15_MIN, 0, 0, "dif_k_spot_line.html", null);
         MarketWaveMotionScanner.outputResistanceSupport("huobi", "btc", SosobtcDataHelper.TYPE_LEVEL_2_HOUR, 0);
@@ -168,6 +237,7 @@ public class Main {
         options.addOption("o", "output file name", true, "File to save program output to");
         options.addOption("e", "endtime", true, "");
         options.addOption("a", "all", true, "");
+//        options.addOption("i", "increase drop", true, "");
 
         try {
             CommandLine cmd = parser.parse(options, args);
@@ -186,6 +256,9 @@ public class Main {
                         break;
                     case "resistance_support":
                         callResistanceSupport(cmd);
+                        break;
+                    case "increase_drop":
+                        callIncreaseDrop(cmd);
                 }
 
             }
@@ -204,6 +277,7 @@ public class Main {
         LogUtils.logDebugLine("-f scan_deviation -m yunbi -c eos -t 5m -o eos_yunbi.html");
         LogUtils.logDebugLine("-f funding -m huobi -c etc -t 1h -d 1 -o etc_huobi.html");
         LogUtils.logDebugLine("-f resistance_support -m yunbi -c eos -t 5m");
+        LogUtils.logDebugLine("-f increase_drop -m yunbi -o yunbi_ins.html");
     }
 
     public static void main(String args[]) {
@@ -359,7 +433,8 @@ public class Main {
         yunbiCoinSet.add("bcc");
         yunbiCoinSet.add("bcc");
         yunbiCoinSet.add("omg");
-
+        yunbiCoinSet.add("lun");
+        yunbiCoinSet.add("pay");
         marketCoinMap.put("yunbi", yunbiCoinSet);
 
         Set<String> huobiCoinSet = new HashSet<>();
@@ -429,6 +504,27 @@ public class Main {
         marketCoinMap.put("jubi", jubiCoinSet);
 
         Set<String> bterCoinSet = new HashSet<>();
+        bterCoinSet.add("btc");
+        bterCoinSet.add("ltc");
+        bterCoinSet.add("eth");
+        bterCoinSet.add("etc");
+        bterCoinSet.add("doge");
+        bterCoinSet.add("etp");
+        bterCoinSet.add("eth");
+        bterCoinSet.add("ppc");
+        bterCoinSet.add("nxt");
+        bterCoinSet.add("nmc");
+        bterCoinSet.add("xcp");
+        bterCoinSet.add("ftc");
+        bterCoinSet.add("xpm");
+        bterCoinSet.add("ifc");
+        bterCoinSet.add("tix");
+        bterCoinSet.add("tips");
+        bterCoinSet.add("cnc");
+        bterCoinSet.add("btq");
+        bterCoinSet.add("dash");
+        bterCoinSet.add("bat");
+        bterCoinSet.add("bts");
         bterCoinSet.add("zec");
         bterCoinSet.add("qtum");
         bterCoinSet.add("rep");
@@ -438,6 +534,9 @@ public class Main {
         bterCoinSet.add("xtc");
         bterCoinSet.add("btm");
         bterCoinSet.add("pay");
+        bterCoinSet.add("cvc");
+        bterCoinSet.add("storj");
+        bterCoinSet.add("omg");
         bterCoinSet.add("bcc");
         marketCoinMap.put("bter", bterCoinSet);
     }

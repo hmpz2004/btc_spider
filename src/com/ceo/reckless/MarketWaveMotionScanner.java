@@ -29,6 +29,17 @@ public class MarketWaveMotionScanner {
 
     public static final String KEY_BOTTOM_DEVIATION = "bottom_deviation";
 
+    public static final String KEY_INCREASE_PERCENT = "increase_precent";
+
+    public static final String KEY_DROP_PERCENT = "drop_precent";
+
+    private static Map<Integer, Integer> resistanceSupportTimePairMap = new HashMap<>();
+    static {
+        resistanceSupportTimePairMap.put(SosobtcDataHelper.TYPE_LEVEL_5_MIN, SosobtcDataHelper.TYPE_LEVEL_15_MIN);
+        resistanceSupportTimePairMap.put(SosobtcDataHelper.TYPE_LEVEL_15_MIN, SosobtcDataHelper.TYPE_LEVEL_1_HOUR);
+        resistanceSupportTimePairMap.put(SosobtcDataHelper.TYPE_LEVEL_1_HOUR, SosobtcDataHelper.TYPE_LEVEL_1_DAY);
+    }
+
     /**
      * 路径用于输出测试报表
      * @param market
@@ -236,7 +247,7 @@ public class MarketWaveMotionScanner {
                     if (kLstValue < kLboValue && macdLstPercentValue >= macdLboPercentValue) {
                         // 发生背离(高低->低高背离)
                         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-                        LogUtils.logDebugLine(">>" + market + " " + coin + "<<");
+                        LogUtils.logDebugLine(">>>>>>" + market + " " + coin + "<<<<<<");
                         LogUtils.logDebugLine(sdf.format(timeLbo) + " --> " + sdf.format(timeLst));
                         LogUtils.logDebugLine("lbo high " + kLboValue + " macd " + macdLboPercentValue);
                         LogUtils.logDebugLine("lst high " + kLstValue + " macd " + macdLstPercentValue);
@@ -274,7 +285,7 @@ public class MarketWaveMotionScanner {
                         if (kPercentDiff > macdPercentDiff * 1.2) {
                             // 发生背离(高低->高低背离,趋势相同k线变化大macd变化小)
                             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-                            LogUtils.logDebugLine(">>" + market + " " + coin + "<<");
+                            LogUtils.logDebugLine(">>>>>>" + market + " " + coin + "<<<<<<");
                             LogUtils.logDebugLine(sdf.format(timeLbo) + " --> " + sdf.format(timeLst));
                             LogUtils.logDebugLine("lbo high " + kLboValue + " macd " + macdLboPercentValue);
                             LogUtils.logDebugLine("lst high " + kLstValue + " macd " + macdLstPercentValue);
@@ -302,6 +313,48 @@ public class MarketWaveMotionScanner {
         }
     }
 
+    public static void scanDropIncreasePercent(String market, String coin, String outputFileName, Map<String, Double> increaseResultMap, Map<String, Double> dropResultMap) {
+        long since = (System.currentTimeMillis() - 25 * 3600 * 1000L);
+        int type = SosobtcDataHelper.TYPE_LEVEL_1_HOUR;
+        String result = SosobtcDataHelper.httpQueryKData(market, coin, type, since/1000L);
+        List<KEntity> keList = SosobtcDataHelper.parseKlineToList(result);
+        if (keList == null || keList.size() == 0) {
+            LogUtils.logDebugLine("null k data");
+            return;
+        }
+
+        double maxValue = 0;
+        long maxValueTime = 0;
+        double minValue = 99999999;
+        long minValueTime = 0;
+
+        for (KEntity keItem : keList) {
+            if (keItem.timestamp > since) {
+                if (keItem.high > maxValue) {
+                    maxValue = keItem.high;
+                    maxValueTime = keItem.timestamp;
+                }
+                if (keItem.low < minValue) {
+                    minValue = keItem.low;
+                    minValueTime = keItem.timestamp;
+                }
+            }
+        }
+
+        if (maxValueTime > minValueTime) {
+            // 达到最高 -> 达到最低
+            // 跌
+            double percent = 1.0 - (minValue / maxValue);
+            increaseResultMap.put(coin, percent);
+
+        } else {
+            // 达到最低 -> 达到最高
+            // 涨
+            double percent = (maxValue / minValue) - 1;
+            dropResultMap.put(coin, percent);
+        }
+    }
+
     /**
      *
      * @param market
@@ -314,15 +367,39 @@ public class MarketWaveMotionScanner {
 //            since = System.currentTimeMillis() - 10 * 60 * 60 * 1000L;
 //            since /= 1000L;
 //        }
-        String result = SosobtcDataHelper.httpQueryKData(market, coin, type, since);
+        long s = System.currentTimeMillis() - 5 * 60 * 1000L;
+        s /= 1000L;
+        // 请求当前实时k数据
+        KEntity curK = null;
+        String realTimeKResult = SosobtcDataHelper.httpQueryKData(market, coin, SosobtcDataHelper.TYPE_LEVEL_1_MIN, s);
+        List<KEntity> realtimeKeList = SosobtcDataHelper.parseKlineToList(realTimeKResult);
+        if (realtimeKeList != null && realtimeKeList.size() != 0) {
+            curK = realtimeKeList.get(realtimeKeList.size() - 1);
+        }
+
+        // 请求大周期的k数据
+        int bigType = 0;
+        if (resistanceSupportTimePairMap.containsKey(type)) {
+            bigType = resistanceSupportTimePairMap.get(type);
+        }
+        String result = SosobtcDataHelper.httpQueryKData(market, coin, bigType, since);
         List<KEntity> keList = SosobtcDataHelper.parseKlineToList(result);
 
         RBreakerEntity rbe = RBreaker.genPivotPoints(keList);
+        double percentRB = (curK.close - rbe.S3) / (rbe.R3 - rbe.S3);
+        percentRB *= 100;
+        int percentRBInt = Integer.valueOf(String.valueOf((int) percentRB));
+
         DualThrustEntity dte = DualThrust.genDualThrustPoints(keList);
+        double percentDT = (curK.close - dte.bottomLane) / (dte.upperLane - dte.bottomLane);
+        percentDT *= 100;
+        int percentDtInt = Integer.valueOf(String.valueOf((int) percentDT));
+
         LogUtils.logDebugLine("=============Resistance Support=============");
-        DecimalFormat df = new DecimalFormat("#.00");
+        DecimalFormat df = new DecimalFormat("#.0000");
         // LogUtils.logDebugLine("r-breaker  : R1 " + df.format(rbe.R1) + " R2 " + df.format(rbe.R2) + " R3 " + df.format(rbe.R3) + " pivot " + df.format(rbe.pivot) + " S1 " + df.format(rbe.S1) + " S2 " + df.format(rbe.S2) + " S3 " + df.format(rbe.S3));
         LogUtils.logDebugLine("r-breaker :");
+        LogUtils.logDebugLine("   cur k  " + curK.close + " --> " + percentRBInt + "%");
         LogUtils.logDebugLine("   R3     " + df.format(rbe.R3));
         LogUtils.logDebugLine("   R2     " + df.format(rbe.R2));
         LogUtils.logDebugLine("   R1     " + df.format(rbe.R1));
@@ -333,9 +410,10 @@ public class MarketWaveMotionScanner {
 
         // LogUtils.logDebugLine("dual thrust : open " + dte.open + " upper " + dte.upperLane + " bottom " + dte.bottomLane);
         LogUtils.logDebugLine("dual thrust :");
-        LogUtils.logDebugLine("   open   " + dte.open);
-        LogUtils.logDebugLine("   upper  " + dte.upperLane);
-        LogUtils.logDebugLine("   bottom " + dte.bottomLane);
+        LogUtils.logDebugLine("   cur k  " + curK.close + " --> " + percentDtInt + "%");
+        LogUtils.logDebugLine("   open   " + df.format(dte.open));
+        LogUtils.logDebugLine("   upper  " + df.format(dte.upperLane));
+        LogUtils.logDebugLine("   bottom " + df.format(dte.bottomLane));
 
     }
 }
