@@ -35,9 +35,10 @@ public class MarketWaveMotionScanner {
 
     private static Map<Integer, Integer> resistanceSupportTimePairMap = new HashMap<>();
     static {
-        resistanceSupportTimePairMap.put(SosobtcDataHelper.TYPE_LEVEL_5_MIN, SosobtcDataHelper.TYPE_LEVEL_15_MIN);
-        resistanceSupportTimePairMap.put(SosobtcDataHelper.TYPE_LEVEL_15_MIN, SosobtcDataHelper.TYPE_LEVEL_1_HOUR);
+        resistanceSupportTimePairMap.put(SosobtcDataHelper.TYPE_LEVEL_5_MIN, SosobtcDataHelper.TYPE_LEVEL_1_HOUR);
+        resistanceSupportTimePairMap.put(SosobtcDataHelper.TYPE_LEVEL_15_MIN, SosobtcDataHelper.TYPE_LEVEL_4_HOUR);
         resistanceSupportTimePairMap.put(SosobtcDataHelper.TYPE_LEVEL_1_HOUR, SosobtcDataHelper.TYPE_LEVEL_1_DAY);
+        resistanceSupportTimePairMap.put(SosobtcDataHelper.TYPE_LEVEL_1_DAY, SosobtcDataHelper.TYPE_LEVEL_1_WEEK);
     }
 
     /**
@@ -362,58 +363,83 @@ public class MarketWaveMotionScanner {
      * @param type
      * @param since 如果参数为0 默认会减去8小时
      */
-    public static void outputResistanceSupport(String market, String coin, int type, long since) {
+    public static void scanResistanceSupport(String market, String coin, int type, long since, Map<String, String> breakResistanceMap, Map<String, String> dropSupportMap) {
 //        if (since == 0) {
 //            since = System.currentTimeMillis() - 10 * 60 * 60 * 1000L;
 //            since /= 1000L;
 //        }
-        long s = System.currentTimeMillis() - 5 * 60 * 1000L;
-        s /= 1000L;
-        // 请求当前实时k数据
-        KEntity curK = null;
-        String realTimeKResult = SosobtcDataHelper.httpQueryKData(market, coin, SosobtcDataHelper.TYPE_LEVEL_1_MIN, s);
-        List<KEntity> realtimeKeList = SosobtcDataHelper.parseKlineToList(realTimeKResult);
-        if (realtimeKeList != null && realtimeKeList.size() != 0) {
-            curK = realtimeKeList.get(realtimeKeList.size() - 1);
+        try {
+            long s = System.currentTimeMillis() - 5 * 60 * 1000L;
+            s /= 1000L;
+            // 请求当前实时k数据
+            KEntity curK = new KEntity();
+            String realTimeKResult = SosobtcDataHelper.httpQueryKData(market, coin, SosobtcDataHelper.TYPE_LEVEL_1_MIN, s);
+            List<KEntity> realtimeKeList = SosobtcDataHelper.parseKlineToList(realTimeKResult);
+            if (realtimeKeList != null && realtimeKeList.size() != 0) {
+                curK = realtimeKeList.get(realtimeKeList.size() - 1);
+            }
+
+            // 请求大周期的k数据
+            int bigType = 0;
+            if (resistanceSupportTimePairMap.containsKey(type)) {
+                bigType = resistanceSupportTimePairMap.get(type);
+            }
+            String result = SosobtcDataHelper.httpQueryKData(market, coin, bigType, since);
+            List<KEntity> keList = SosobtcDataHelper.parseKlineToList(result);
+
+            StringBuilder sbMapContentBreak = new StringBuilder();
+            StringBuilder sbMapContentDrop = new StringBuilder();
+
+            RBreakerEntity rbe = RBreaker.genPivotPoints(keList);
+            double percentRB = (curK.open - rbe.S3) / (rbe.R3 - rbe.S3);
+            percentRB *= 100;
+            int percentRBInt = Integer.valueOf(String.valueOf((int) percentRB));
+            if (percentRBInt > 100 && percentRBInt < 100) {
+                sbMapContentBreak.append(percentRBInt + "%(r-breaker) ");
+            } else if (percentRBInt < 0 && percentRBInt > -100) {
+                sbMapContentDrop.append(percentRBInt + "%(r-breaker) ");
+            }
+
+            DualThrustEntity dte = DualThrust.genDualThrustPoints(keList);
+            double percentDT = (curK.open - dte.bottomLane) / (dte.upperLane - dte.bottomLane);
+            percentDT *= 100;
+            int percentDtInt = Integer.valueOf(String.valueOf((int) percentDT));
+            if (percentDtInt > 100 && percentDtInt < 100) {
+                sbMapContentBreak.append(percentDtInt + "%(dual-thrust) ");
+            } else if (percentDtInt < 0 && percentDtInt> -100) {
+                sbMapContentDrop.append(percentDtInt + "%(dual-thrust) ");
+            }
+
+            if (breakResistanceMap == null && dropSupportMap == null) {
+                LogUtils.logDebugLine("=============Resistance Support=============");
+                DecimalFormat df = new DecimalFormat("#.0000");
+                // LogUtils.logDebugLine("r-breaker  : R1 " + df.format(rbe.R1) + " R2 " + df.format(rbe.R2) + " R3 " + df.format(rbe.R3) + " pivot " + df.format(rbe.pivot) + " S1 " + df.format(rbe.S1) + " S2 " + df.format(rbe.S2) + " S3 " + df.format(rbe.S3));
+                LogUtils.logDebugLine("r-breaker :");
+                LogUtils.logDebugLine("   cur k  " + curK.open + " --> " + percentRBInt + "%");
+                LogUtils.logDebugLine("   R3     " + df.format(rbe.R3));
+                LogUtils.logDebugLine("   R2     " + df.format(rbe.R2));
+                LogUtils.logDebugLine("   R1     " + df.format(rbe.R1));
+                LogUtils.logDebugLine("   pivot  " + df.format(rbe.pivot));
+                LogUtils.logDebugLine("   S1     " + df.format(rbe.S1));
+                LogUtils.logDebugLine("   S2     " + df.format(rbe.S2));
+                LogUtils.logDebugLine("   S3     " + df.format(rbe.S3));
+
+                // LogUtils.logDebugLine("dual thrust : open " + dte.open + " upper " + dte.upperLane + " bottom " + dte.bottomLane);
+                LogUtils.logDebugLine("dual thrust :");
+                LogUtils.logDebugLine("   cur k  " + curK.open + " --> " + percentDtInt + "%");
+                LogUtils.logDebugLine("   open   " + df.format(dte.open));
+                LogUtils.logDebugLine("   upper  " + df.format(dte.upperLane));
+                LogUtils.logDebugLine("   bottom " + df.format(dte.bottomLane));
+            }
+
+            if (sbMapContentBreak.length() != 0 && breakResistanceMap != null) {
+                breakResistanceMap.put(coin, sbMapContentBreak.toString());
+            }
+            if (sbMapContentDrop.length() != 0 && dropSupportMap != null) {
+                dropSupportMap.put(coin, sbMapContentDrop.toString());
+            }
+        } catch (Exception e) {
+            LogUtils.logError(e);
         }
-
-        // 请求大周期的k数据
-        int bigType = 0;
-        if (resistanceSupportTimePairMap.containsKey(type)) {
-            bigType = resistanceSupportTimePairMap.get(type);
-        }
-        String result = SosobtcDataHelper.httpQueryKData(market, coin, bigType, since);
-        List<KEntity> keList = SosobtcDataHelper.parseKlineToList(result);
-
-        RBreakerEntity rbe = RBreaker.genPivotPoints(keList);
-        double percentRB = (curK.close - rbe.S3) / (rbe.R3 - rbe.S3);
-        percentRB *= 100;
-        int percentRBInt = Integer.valueOf(String.valueOf((int) percentRB));
-
-        DualThrustEntity dte = DualThrust.genDualThrustPoints(keList);
-        double percentDT = (curK.close - dte.bottomLane) / (dte.upperLane - dte.bottomLane);
-        percentDT *= 100;
-        int percentDtInt = Integer.valueOf(String.valueOf((int) percentDT));
-
-        LogUtils.logDebugLine("=============Resistance Support=============");
-        DecimalFormat df = new DecimalFormat("#.0000");
-        // LogUtils.logDebugLine("r-breaker  : R1 " + df.format(rbe.R1) + " R2 " + df.format(rbe.R2) + " R3 " + df.format(rbe.R3) + " pivot " + df.format(rbe.pivot) + " S1 " + df.format(rbe.S1) + " S2 " + df.format(rbe.S2) + " S3 " + df.format(rbe.S3));
-        LogUtils.logDebugLine("r-breaker :");
-        LogUtils.logDebugLine("   cur k  " + curK.close + " --> " + percentRBInt + "%");
-        LogUtils.logDebugLine("   R3     " + df.format(rbe.R3));
-        LogUtils.logDebugLine("   R2     " + df.format(rbe.R2));
-        LogUtils.logDebugLine("   R1     " + df.format(rbe.R1));
-        LogUtils.logDebugLine("   pivot  " + df.format(rbe.pivot));
-        LogUtils.logDebugLine("   S1     " + df.format(rbe.S1));
-        LogUtils.logDebugLine("   S2     " + df.format(rbe.S2));
-        LogUtils.logDebugLine("   S3     " + df.format(rbe.S3));
-
-        // LogUtils.logDebugLine("dual thrust : open " + dte.open + " upper " + dte.upperLane + " bottom " + dte.bottomLane);
-        LogUtils.logDebugLine("dual thrust :");
-        LogUtils.logDebugLine("   cur k  " + curK.close + " --> " + percentDtInt + "%");
-        LogUtils.logDebugLine("   open   " + df.format(dte.open));
-        LogUtils.logDebugLine("   upper  " + df.format(dte.upperLane));
-        LogUtils.logDebugLine("   bottom " + df.format(dte.bottomLane));
-
     }
 }

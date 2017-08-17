@@ -28,9 +28,51 @@ public class Main {
             } else {
                 LogUtils.logDebugLine("time type error");
             }
-            MarketWaveMotionScanner.outputResistanceSupport(market, coin, typeNum, 0);
+            MarketWaveMotionScanner.scanResistanceSupport(market, coin, typeNum, 0, null, null);
         } else {
             LogUtils.logDebugLine("funding usage:\n -m yunbi -c eos -t 5m");
+        }
+    }
+
+    private static void callScanResistanceSupport(CommandLine cmd) {
+        if (cmd.hasOption("m") &&
+                cmd.hasOption("t")) {
+            String market = cmd.getOptionValue("m");
+            String type = cmd.getOptionValue("t");
+            int typeNum = 0;
+            if (SosobtcDataHelper.typeMap.containsKey(type)) {
+                typeNum = SosobtcDataHelper.typeMap.get(type);
+            } else {
+                LogUtils.logDebugLine("time type error");
+            }
+
+            if (marketCoinMap.containsKey(market)) {
+
+                Map<String, String> breakMap = new HashMap<>();
+                Map<String, String> dropMap = new HashMap<>();
+
+                Set<String> marketCoinSet = marketCoinMap.get(market);
+                Iterator<String> iter = marketCoinSet.iterator();
+                String coin = null;
+                while (iter.hasNext() && (coin = iter.next()) != null) {
+                    MarketWaveMotionScanner.scanResistanceSupport(market, coin, typeNum, 0, breakMap, dropMap);
+                }
+                LogUtils.logDebugLine("====================break resistance !!!====================");
+                LogUtils.logDebugLine("");
+                for (Map.Entry<String, String> itemEntry : breakMap.entrySet()) {
+                    LogUtils.logDebugLine(itemEntry.getKey() + " : " + itemEntry.getValue());
+                }
+                LogUtils.logDebugLine("====================drop  support    !!!====================");
+                LogUtils.logDebugLine("");
+                for (Map.Entry<String, String> itemEntry : dropMap.entrySet()) {
+                    LogUtils.logDebugLine(itemEntry.getKey() + " : " + itemEntry.getValue());
+                }
+                LogUtils.logDebugLine("");
+            } else {
+                LogUtils.logDebugLine("market error");
+            }
+        } else {
+            LogUtils.logDebugLine("scan_resistance_support usage:\n -m yunbi -t 5m");
         }
     }
 
@@ -215,7 +257,7 @@ public class Main {
 
     private static void testMain(String args[]) {
         MarketWaveMotionScanner.scanDeviation("huobi", "btc", SosobtcDataHelper.TYPE_LEVEL_15_MIN, 0, 0, "dif_k_spot_line.html", null);
-        MarketWaveMotionScanner.outputResistanceSupport("huobi", "btc", SosobtcDataHelper.TYPE_LEVEL_2_HOUR, 0);
+        MarketWaveMotionScanner.scanResistanceSupport("huobi", "btc", SosobtcDataHelper.TYPE_LEVEL_2_HOUR, 0, null, null);
 
 //        FundingDistributionScanner.needDecimal = false;
 //        FundingDistributionScanner.baseDivisor = 100;
@@ -254,6 +296,9 @@ public class Main {
                     case "scan_deviation":
                         callScanDeviation(cmd);
                         break;
+                    case "scan_resistance_support":
+                        callScanResistanceSupport(cmd);
+                        break;
                     case "resistance_support":
                         callResistanceSupport(cmd);
                         break;
@@ -277,6 +322,7 @@ public class Main {
         LogUtils.logDebugLine("-f scan_deviation -m yunbi -c eos -t 5m -o eos_yunbi.html");
         LogUtils.logDebugLine("-f funding -m huobi -c etc -t 1h -d 1 -o etc_huobi.html");
         LogUtils.logDebugLine("-f resistance_support -m yunbi -c eos -t 5m");
+        LogUtils.logDebugLine("-f scan_resistance_support -m yunbi -t 5m");
         LogUtils.logDebugLine("-f increase_drop -m yunbi -o yunbi_ins.html");
     }
 
