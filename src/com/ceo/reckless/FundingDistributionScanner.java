@@ -46,15 +46,15 @@ public class FundingDistributionScanner {
      * @param keList
      * @return
      */
-    private Map<Double, BigDecimal> calculateFundingDistribution(List<KEntity> keList, long since) {
+    private Map<Double, BigDecimal> calculateFundingDistribution(List<KEntity> keList, long since, long end, Map<Double, BigDecimal> priceMap, Map<Double, BigDecimal> volumeMap) {
         if (keList != null && keList.size() != 0) {
 
-            Map<Double, BigDecimal> priceMap = new TreeMap<Double, BigDecimal>(new Comparator<Double>() {
-                public int compare(Double obj1, Double obj2) {
-                    // 降序排序
-                    return obj1.compareTo(obj2);
-                }
-            });
+//            Map<Double, BigDecimal> priceMap = new TreeMap<Double, BigDecimal>(new Comparator<Double>() {
+//                public int compare(Double obj1, Double obj2) {
+//                    // 降序排序
+//                    return obj1.compareTo(obj2);
+//                }
+//            });
 
             int cnt = 0;
             for (KEntity keItem : keList) {
@@ -62,6 +62,10 @@ public class FundingDistributionScanner {
                 if (keItem.timestamp < since * 1000L) {
                     continue;
                 }
+                if (end != 0 && keItem.timestamp > end * 1000L) {
+                    continue;
+                }
+
                 cnt++;
 
                 String value = "";
@@ -75,26 +79,32 @@ public class FundingDistributionScanner {
                 }
 
                 double closePrice = Double.valueOf(value);
-                BigDecimal target = new BigDecimal(0);
+                BigDecimal targetAmount = new BigDecimal(0);
+                BigDecimal targetVolume = new BigDecimal(0);
                 if (priceMap.containsKey(closePrice)) {
-                    target = priceMap.get(closePrice);
+                    targetAmount = priceMap.get(closePrice);
+                }
+                if (volumeMap.containsKey(closePrice)) {
+                    targetVolume = volumeMap.get(closePrice);
                 }
 //                target += (keItem.close * keItem.volume);
                 BigDecimal c = new BigDecimal(keItem.close);
                 BigDecimal v = new BigDecimal(keItem.volume);
-                target = target.add(c.multiply(v));
-                priceMap.put(closePrice, target);
+                targetAmount = targetAmount.add(c.multiply(v));
+                targetVolume = targetVolume.add(v);
+                priceMap.put(closePrice, targetAmount);
+                volumeMap.put(closePrice, targetVolume);
             }
             LogUtils.logDebugLine("total process " + cnt + " data");
 
-            return priceMap;
+            return null;
         } else {
             LogUtils.logDebugLine("calculateFundingDistribution() param list null");
         }
         return null;
     }
 
-    private void outputMapToConsole(Map<Double, BigDecimal> priceMap) {
+    private void outputMapToConsole(Map<Double, BigDecimal> priceMap, Map<Double, BigDecimal> volumeMap) {
         if (priceMap != null && priceMap.size() != 0) {
             LogUtils.logDebugLine("====================");
             BigDecimal totalAmount = new BigDecimal(0);
@@ -103,7 +113,15 @@ public class FundingDistributionScanner {
                 totalAmount = totalAmount.add(itemEntry.getValue());
             }
             LogUtils.logDebugLine("====================");
-            LogUtils.logDebugLine("total " + totalAmount.toString());
+            LogUtils.logDebugLine("total amount " + totalAmount.toString());
+            LogUtils.logDebugLine("====================");
+            BigDecimal totalVolume = new BigDecimal(0);
+            for (Map.Entry<Double, BigDecimal> itemEntry : volumeMap.entrySet()) {
+                LogUtils.logDebugLine(itemEntry.getKey() + " " + itemEntry.getValue().longValue());
+                totalVolume = totalVolume.add(itemEntry.getValue());
+            }
+            LogUtils.logDebugLine("====================");
+            LogUtils.logDebugLine("total volume " + totalVolume.toString());
             LogUtils.logDebugLine("====================");
         } else {
             LogUtils.logDebugLine("outputMapToConsole() param map null");
@@ -140,16 +158,31 @@ public class FundingDistributionScanner {
         }
     }
 
-    public void genFundingChart(String market, String coin, int type, long since, String outputFileName) {
+    public void genFundingChart(String market, String coin, int type, long since, long end, String outputFileName) {
 
         LogUtils.logDebugLine("begin ...");
 
         String result = SosobtcDataHelper.httpQueryKData(market, coin, type, since);
         if (result != null && result.length() != 0) {
             List<KEntity> keList = SosobtcDataHelper.parseKlineToList(result);
-            Map<Double, BigDecimal> priceMap = calculateFundingDistribution(keList, since);
+
+            Map<Double, BigDecimal> priceMap = new TreeMap<Double, BigDecimal>(new Comparator<Double>() {
+                public int compare(Double obj1, Double obj2) {
+                    // 降序排序
+                    return obj1.compareTo(obj2);
+                }
+            });
+
+            Map<Double, BigDecimal> volumeMap = new TreeMap<Double, BigDecimal>(new Comparator<Double>() {
+                public int compare(Double obj1, Double obj2) {
+                    // 降序排序
+                    return obj1.compareTo(obj2);
+                }
+            });
+
+            calculateFundingDistribution(keList, since, end, priceMap, volumeMap);
             if (Env.DEBUG) {
-                outputMapToConsole(priceMap);
+                outputMapToConsole(priceMap, volumeMap);
             }
             outputHtmlBarChart(priceMap, outputFileName);
             LogUtils.logDebugLine("done!");

@@ -178,10 +178,14 @@ public class Main {
             if (cmd.hasOption("s")) {
                 since = Long.valueOf(cmd.getOptionValue("s"));
             }
+            long end = 0;
+            if (cmd.hasOption("e")) {
+                end = Long.valueOf(cmd.getOptionValue("e"));
+            }
 
             htmlTitle = coin + "_" + market + "_" + type;
 
-            new FundingDistributionScanner(needDecimal, price_formatter, baseDivisor, htmlTitle).genFundingChart(market, coin, typeNum, since, outputName);
+            new FundingDistributionScanner(needDecimal, price_formatter, baseDivisor, htmlTitle).genFundingChart(market, coin, typeNum, since, end, outputName);
         } else {
             LogUtils.logDebugLine("funding usage:\n -m yunbi -c eos -t 5m -s 1502382000 -d \"#.00\" -o output.html\n -m yunbi -c eos -t 5m -d \"#.00\" -o eos_yunbi.html");
         }
