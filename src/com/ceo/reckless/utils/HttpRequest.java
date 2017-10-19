@@ -10,6 +10,9 @@ import java.util.List;
 import java.util.Map;
 
 public class HttpRequest {
+
+    private static String cookieContent = null;
+
     /**
      * 向指定URL发送GET方法的请求
      *
@@ -23,10 +26,72 @@ public class HttpRequest {
         String result = "";
         BufferedReader in = null;
         try {
-            String urlNameString = url + "?" + param;
+            String urlNameString = url;
+            if (param != null && !param.equals("")) {
+                urlNameString += "?" + param;
+            }
             URL realUrl = new URL(urlNameString);
             // 打开和URL之间的连接
             URLConnection connection = realUrl.openConnection();
+            // 设置通用的请求属性
+            connection.setRequestProperty("accept", "gzip");
+            connection.setRequestProperty("connection", "Keep-Alive");
+            connection.setRequestProperty("user-agent", "okhttp/3.3.0");
+            // 建立实际的连接
+            connection.connect();
+            // 获取所有响应头字段
+            Map<String, List<String>> map = connection.getHeaderFields();
+            // 遍历所有的响应头字段
+            for (String key : map.keySet()) {
+                System.out.println(key + "--->" + map.get(key));
+                cookieContent += key + "=" + map.get(key) + ";";
+            }
+
+            return IoStreamUtils.readUTF8(connection.getInputStream());
+
+            // 定义 BufferedReader输入流来读取URL的响应
+//            in = new BufferedReader(new InputStreamReader(
+//                    connection.getInputStream()));
+//            String line;
+//            while ((line = in.readLine()) != null) {
+//                result += line;
+//            }
+        } catch (Exception e) {
+            System.out.println("发送GET请求出现异常！" + e);
+            e.printStackTrace();
+        }
+        // 使用finally块来关闭输入流
+        finally {
+            try {
+                if (in != null) {
+                    in.close();
+                }
+            } catch (Exception e2) {
+                e2.printStackTrace();
+            }
+        }
+        return result;
+    }
+
+    public static String sendGetWithCookie(String url, String param, String cookieUrl, String cookieParam) {
+        String result = "";
+        BufferedReader in = null;
+        try {
+
+            if (cookieContent == null) {
+                sendGet(cookieUrl, cookieParam);
+            }
+
+            String urlNameString = url;
+            if (param != null && !param.equals("")) {
+                urlNameString += "?" + param;
+            }
+            URL realUrl = new URL(urlNameString);
+            // 打开和URL之间的连接
+            URLConnection connection = realUrl.openConnection();
+            if (cookieContent != null) {
+                connection.setRequestProperty("Cookie", cookieContent);
+            }
             // 设置通用的请求属性
             connection.setRequestProperty("accept", "gzip");
             connection.setRequestProperty("connection", "Keep-Alive");
