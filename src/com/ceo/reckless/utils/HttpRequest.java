@@ -43,7 +43,7 @@ public class HttpRequest {
             Map<String, List<String>> map = connection.getHeaderFields();
             // 遍历所有的响应头字段
             for (String key : map.keySet()) {
-                System.out.println(key + "--->" + map.get(key));
+//                System.out.println(key + "--->" + map.get(key));
                 cookieContent += key + "=" + map.get(key) + ";";
             }
 
@@ -86,6 +86,9 @@ public class HttpRequest {
             if (param != null && !param.equals("")) {
                 urlNameString += "?" + param;
             }
+
+//            LogUtils.logDebugLine(urlNameString);
+
             URL realUrl = new URL(urlNameString);
             // 打开和URL之间的连接
             URLConnection connection = realUrl.openConnection();

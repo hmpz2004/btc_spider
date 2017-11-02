@@ -3,10 +3,18 @@ package com.ceo.reckless.utils;
 import java.util.ArrayList;
 import java.util.List;
 
-public class HttpUrlUtils {
+public class HttpUrlParamBuilder {
 
     private List<String> keyList = new ArrayList<>();
     private List<String> valueList = new ArrayList<>();
+
+    public HttpUrlParamBuilder() {
+    }
+
+    public HttpUrlParamBuilder(HttpUrlParamBuilder h) {
+        keyList.addAll(h.keyList);
+        valueList.addAll(h.valueList);
+    }
 
     public void appendParam(String key, String value) {
         keyList.add(key);
