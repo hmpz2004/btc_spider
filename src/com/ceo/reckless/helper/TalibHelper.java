@@ -12,6 +12,8 @@ import java.util.List;
 
 public class TalibHelper {
 
+    private static boolean TALIB_DEBUG = false;
+
     public static MACDEntity genMacd(List<KEntity> keList) {
 
         if (keList == null || keList.size() == 0) {
@@ -55,7 +57,7 @@ public class TalibHelper {
             return null;
         }
 
-        if (Env.DEBUG) {
+        if (TALIB_DEBUG) {
             LogUtils.logDebugLine("outBegIdx " + outBegIdx.value + " outNBElement " + outNBElement.value);
         }
 

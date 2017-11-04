@@ -36,15 +36,21 @@ public class HttpRequest {
             // 设置通用的请求属性
             connection.setRequestProperty("accept", "gzip");
             connection.setRequestProperty("connection", "Keep-Alive");
-            connection.setRequestProperty("user-agent", "okhttp/3.3.0");
+            connection.setRequestProperty("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36");
             // 建立实际的连接
             connection.connect();
             // 获取所有响应头字段
             Map<String, List<String>> map = connection.getHeaderFields();
-            // 遍历所有的响应头字段
-            for (String key : map.keySet()) {
-//                System.out.println(key + "--->" + map.get(key));
-                cookieContent += key + "=" + map.get(key) + ";";
+            // 处理cookie
+            if (map.containsKey("Set-Cookie")) {
+                List cookieValueList = map.get("Set-Cookie");
+                for (Object item : cookieValueList) {
+                    String itemString = (String) item;
+                    String[] array = itemString.split(" path=");    // 根据cookie格式把name=value后面的expire啥的都切掉
+                    if (array != null && array.length > 1) {
+                        cookieContent += array[0];
+                    }
+                }
             }
 
             return IoStreamUtils.readUTF8(connection.getInputStream());
@@ -98,7 +104,7 @@ public class HttpRequest {
             // 设置通用的请求属性
             connection.setRequestProperty("accept", "gzip");
             connection.setRequestProperty("connection", "Keep-Alive");
-            connection.setRequestProperty("user-agent", "okhttp/3.3.0");
+            connection.setRequestProperty("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36");
             // 建立实际的连接
             connection.connect();
             // 获取所有响应头字段

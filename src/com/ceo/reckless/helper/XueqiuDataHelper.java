@@ -10,13 +10,15 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class XueqiuDataHelper {
 
-    private static boolean XUEQIU_DEBUG = true;
+    private static boolean XUEQIU_DEBUG = false;
 
-    public static String INDEX_URL = "https://www.xueqiu.com";
+    public static String INDEX_URL = "https://xueqiu.com";
 
     // -------------------------------------------
     // 个股参数
@@ -45,6 +47,18 @@ public class XueqiuDataHelper {
     public static final String PERIOD_30_MIN = "30m";
     public static final String PERIOD_60_MIN = "60m";
     public static final String PERIOD_REAL_TIME = "5d";     // 分时
+
+    public static Map<String, String> periodTypeMap = new HashMap<>();
+    static {
+        periodTypeMap.put("0", PERIOD_REAL_TIME);// 分时
+        periodTypeMap.put("1m", PERIOD_1_MIN);// 1分
+        periodTypeMap.put("5m", PERIOD_5_MIN);// 5分
+        periodTypeMap.put("15m", PERIOD_15_MIN);// 15分
+        periodTypeMap.put("30m", PERIOD_30_MIN);// 30分
+        periodTypeMap.put("1h", PERIOD_60_MIN);// 1小时
+        periodTypeMap.put("1d", PERIOD_1_DAY);// 1天
+        periodTypeMap.put("1w", PERIOD_1_WEEK);// 1周
+    }
 
     public static final String TYPE_NORMAL = "normal";
 
@@ -92,15 +106,30 @@ public class XueqiuDataHelper {
         }
     }
 
-    public static List<KEntity> requestStockDefaultKLine(String symbol, String period) {
+    public static List<KEntity> requestStockDefaultKLine(String symbol, String periodType) {
+
         long cur = System.currentTimeMillis();
+
+        return requestStockDefaultKLine(symbol, periodType, cur);
+    }
+
+    public static List<KEntity> requestStockDefaultKLine(String symbol, String periodType, long endTimeStamp) {
+
+        String period = periodTypeMap.get(periodType);
+
+        long cur = System.currentTimeMillis();
+
+        if (endTimeStamp == 0) {
+            endTimeStamp = cur;
+        }
+
         long begin = cur - BEGIN_INTERVAL;
         HttpUrlParamBuilder ut = new HttpUrlParamBuilder();
         ut.appendParam(PARAM_KEY_SYMBOL, symbol);
         ut.appendParam(PARAM_KEY_PERIOD, period);
         ut.appendParam(PARAM_KEY_TYPE, TYPE_NORMAL);
         ut.appendParam(PARAM_KEY_BEGIN, String.valueOf(begin));
-        ut.appendParam(PARAM_KEY_END, String.valueOf(cur));
+        ut.appendParam(PARAM_KEY_END, String.valueOf(endTimeStamp));
         ut.appendParam(PARAM_KEY_COUNT, String.valueOf(240));
 
         String urlParamString = ut.formatUrlParamString();
@@ -162,6 +191,8 @@ public class XueqiuDataHelper {
                 LogUtils.logDebugLine("total page rank rec size " + totalList.size());
             }
 
+            return totalList;
+
         } catch (Exception e) {
             LogUtils.logError(e);
         }
@@ -187,6 +218,7 @@ public class XueqiuDataHelper {
             sizeUb.appendParam(PARAM_KEY_PAGE, "1");
             String sizeUps = sizeUb.formatUrlParamString();
             String sizeRes = HttpRequest.sendGetWithCookie(HK_STOCK_RANK_LIST_URL, sizeUps, INDEX_URL, null);
+
             // 获取记录数
             JSONObject joTotal = new JSONObject(sizeRes);
             if (joTotal.has("count")) {
@@ -251,7 +283,7 @@ public class XueqiuDataHelper {
     }
 
     // 解析K线数据
-    public static List<KEntity> parseKlineToList(String jsonContentString) {
+    private static List<KEntity> parseKlineToList(String jsonContentString) {
         try {
 
             if (jsonContentString != null && jsonContentString.length() != 0) {
@@ -284,7 +316,7 @@ public class XueqiuDataHelper {
     }
 
     // 解析港股行情数据
-    public static List<HKStockRankEntity> parseHKStockRankToList(String jsonContentString) {
+    private static List<HKStockRankEntity> parseHKStockRankToList(String jsonContentString) {
         try {
 
             if (jsonContentString != null && jsonContentString.length() != 0) {
@@ -328,7 +360,7 @@ public class XueqiuDataHelper {
     }
 
     // 解析A股行情数据
-    public static List<SHStockRankEntity> parseAStockRankToList(String jsonContentString) {
+    private static List<SHStockRankEntity> parseAStockRankToList(String jsonContentString) {
         try {
 
             if (jsonContentString != null && jsonContentString.length() != 0) {
@@ -372,6 +404,15 @@ public class XueqiuDataHelper {
         return null;
     }
 
+//    public static List<KEntity> convertSHStockRankEntity(List<SHStockRankEntity> shStockRankEntityList) {
+//        List<KEntity> resultList = new ArrayList<>();
+
+//        for (SHStockRankEntity sre : shStockRankEntityList) {
+//            KEntity ke = new KEntity();
+//
+//        }
+//    }
+
     public static void main(String[] args) {
 //        requestXueqiuIndex();
 //        requestStocklist();
@@ -380,7 +421,7 @@ public class XueqiuDataHelper {
 
 //        requestStockDefaultKLine("SH603517", PERIOD_30_MIN);
 //        requestStockDefaultKLine("08205", PERIOD_REAL_TIME);
-//        requestHKStockDefaultRankList(ORDERBY_PERCENT);
-        requestAStockDefaultRankList(ORDERBY_PERCENT);
+        requestHKStockDefaultRankList(ORDERBY_PERCENT);
+//        requestAStockDefaultRankList(ORDERBY_PERCENT);
     }
 }

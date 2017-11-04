@@ -225,10 +225,14 @@ public class MarketWaveMotionScanner {
                         deviationResultMap.put(KEY_TOP_DEVIATION, deviationValue + " " + coin);
                     }
                 } else {
-                    LogUtils.logDebugLine("nothing");
+                    if (DEBUG_OUTPUT) {
+                        LogUtils.logDebugLine("nothing");
+                    }
                 }
             } else {
-                LogUtils.logDebugLine("less than 2 top value");
+                if (DEBUG_OUTPUT) {
+                    LogUtils.logDebugLine("less than 2 top value");
+                }
             }
 
             /**
@@ -305,7 +309,9 @@ public class MarketWaveMotionScanner {
                 }
 
             } else {
-                LogUtils.logDebugLine("less than 2 bottom value");
+                if (DEBUG_OUTPUT) {
+                    LogUtils.logDebugLine("less than 2 bottom value");
+                }
             }
 
             if (outputFileName != null) {

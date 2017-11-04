@@ -222,8 +222,8 @@ public class FundingDistributionScanner {
 //                    String coin = cmd.getOptionValue("c");
 //                    String type = cmd.getOptionValue("t");
 //                    int typeNum = 0;
-//                    if (SosobtcDataHelper.typeMap.containsKey(type)) {
-//                        typeNum = SosobtcDataHelper.typeMap.get(type);
+//                    if (SosobtcDataHelper.periodTypeMap.containsKey(type)) {
+//                        typeNum = SosobtcDataHelper.periodTypeMap.get(type);
 //                    } else {
 //                        LogUtils.logDebugLine("time type error");
 //                    }
