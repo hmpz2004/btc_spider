@@ -13,8 +13,8 @@ import java.util.*;
 public class StockDeviationScanner {
 
     // 用于筛选股票涨跌幅范围 [x%, y%]
-    private static double CONST_INCREASE_DROP_PERCENT_UPPER_BAND = -4;
-    private static double CONST_INCREASE_DROP_PERCENT_BOTTOM_BAND = -9;
+    private static double CONST_INCREASE_DROP_PERCENT_UPPER_BAND = -2;
+    private static double CONST_INCREASE_DROP_PERCENT_BOTTOM_BAND = -10;
 
     private static final String KEY_TOP_LINE_DEVIATION = "TOP_LINE_DEVIATION";
     private static final String KEY_TOP_BAR_DEVIATION = "TOP_BAR_DEVIATION";
@@ -26,6 +26,7 @@ public class StockDeviationScanner {
     private static final String KEY_BOTTOM_LINE_PRE_DEVIATION = "BOTTOM_LINE_PRE_DEVIATION";
     private static final String KEY_BOTTOM_BAR_PRE_DEVIATION = "BOTTOM_BAR_PRE_DEVIATION";
 
+    // 设置背离发生时间距离现在多久,就不展示了
     private static final long OUTPUT_FILTER_INTERVAL = 7 * 24 * 3600 * 1000L;
 
     public static void scanTotalDeviation(String periodType) {
@@ -52,40 +53,62 @@ public class StockDeviationScanner {
             }
         };
 
+        // 存放各种扫描的结果
+        List<Map<String, Map<Long, Object>>> outputResultMapList = new ArrayList<>();
+
         Map<String, Map<Long, Object>> totalDeviationResultMap = new TreeMap<>(cmp);
         scanDeviation(shStockRankEntityList, periodType, false, totalDeviationResultMap);
-        outputDeviationInfo(totalDeviationResultMap);
+        outputResultMapList.add(totalDeviationResultMap);
 
-        LogUtils.logDebugLine("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+
 
         Map<String, Map<Long, Object>> totalPreDeviationResultMap = new TreeMap<>(cmp);
         scanDeviation(shStockRankEntityList, periodType, true, totalPreDeviationResultMap);
-        outputDeviationInfo(totalPreDeviationResultMap);
+        outputResultMapList.add(totalPreDeviationResultMap);
+
+        outputDeviationInfo(outputResultMapList);
     }
 
-    private static void outputDeviationInfo(Map<String, Map<Long, Object>> totalDeviationResultMap) {
-        // 分别输出各种背离情况的股票
-        for (Map.Entry<String, Map<Long, Object>> mapEntry : totalDeviationResultMap.entrySet()) {
-            String key = mapEntry.getKey();
-            Map<Long, Object> valueMap = mapEntry.getValue();
-            if (valueMap != null && !valueMap.isEmpty()) {
-                LogUtils.logDebugLine("==================" + key + " :==================");
+    private static void outputDeviationInfo(List<Map<String, Map<Long, Object>>> outputResultMapList) {
 
+        // 用于对整体结果去重,方便查看
+        Map<String, SHStockRankEntity> sreMap = new HashMap<>();
+
+        for (Map<String, Map<Long, Object>> totalDeviationResultMap : outputResultMapList) {
+            // 分别输出各种背离情况的股票
+            for (Map.Entry<String, Map<Long, Object>> mapEntry : totalDeviationResultMap.entrySet()) {
+                String key = mapEntry.getKey();
+                Map<Long, Object> valueMap = mapEntry.getValue();
                 if (valueMap != null && !valueMap.isEmpty()) {
-                    for (Map.Entry<Long, Object> entry : valueMap.entrySet()) {
-                        SHStockRankEntity resultSre = (SHStockRankEntity) entry.getValue();
+                    LogUtils.logDebugLine("==================" + key + " :==================");
 
-                        long timeDiff = entry.getKey().longValue();
-                        if (timeDiff > OUTPUT_FILTER_INTERVAL) {
-                            // 超过7天的就不显示了
-                            continue;
+                    if (valueMap != null && !valueMap.isEmpty()) {
+                        for (Map.Entry<Long, Object> entry : valueMap.entrySet()) {
+                            SHStockRankEntity resultSre = (SHStockRankEntity) entry.getValue();
+
+                            long timeDiff = entry.getKey().longValue();
+                            if (timeDiff > OUTPUT_FILTER_INTERVAL) {
+                                // 超过7天的就不显示了
+                                continue;
+                            }
+                            String timeDiffDesc = TimeUtils.calculateTimeDistance(timeDiff);
+
+                            LogUtils.logDebugLine(resultSre.symbol + " " + resultSre.name + " " + resultSre.percent + " " + timeDiffDesc);
+
+                            sreMap.put(resultSre.symbol, resultSre);
                         }
-                        String timeDiffDesc = TimeUtils.calculateTimeDistance(timeDiff);
-
-                        LogUtils.logDebugLine(resultSre.symbol + " " + resultSre.name + " " + resultSre.percent + " " + timeDiffDesc);
                     }
                 }
             }
+
+            LogUtils.logDebugLine("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+        }
+
+        LogUtils.logDebugLine("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+
+        for (Map.Entry<String, SHStockRankEntity> mapEntry : sreMap.entrySet()) {
+            SHStockRankEntity resultSre = mapEntry.getValue();
+            LogUtils.logDebugLine(resultSre.symbol + " " + resultSre.name + " " + resultSre.percent);
         }
     }
 
@@ -128,16 +151,16 @@ public class StockDeviationScanner {
             List<KEntity> kEntityList = XueqiuDataHelper.requestStockDefaultKLine(symbol, periodType);
 
             // 判断个股K线四种背离情况
-            DeviationEntity de1 = new DeviationEntity();
-            boolean t1 = Deviation.isDeviation(Deviation.TYPE_LINE, Deviation.TYPE_TOP, kEntityList, de1, isPreDeviation);
-            if (t1) {
-                topLineDeviationMap.put(de1.timeDiffFromCur, sre);
-            }
-            DeviationEntity de2 = new DeviationEntity();
-            boolean t2 = Deviation.isDeviation(Deviation.TYPE_BAR, Deviation.TYPE_TOP, kEntityList, de2, isPreDeviation);
-            if (t2) {
-                topBarDeviationMap.put(de2.timeDiffFromCur, sre);
-            }
+//            DeviationEntity de1 = new DeviationEntity();
+//            boolean t1 = Deviation.isDeviation(Deviation.TYPE_LINE, Deviation.TYPE_TOP, kEntityList, de1, isPreDeviation);
+//            if (t1) {
+//                topLineDeviationMap.put(de1.timeDiffFromCur, sre);
+//            }
+//            DeviationEntity de2 = new DeviationEntity();
+//            boolean t2 = Deviation.isDeviation(Deviation.TYPE_BAR, Deviation.TYPE_TOP, kEntityList, de2, isPreDeviation);
+//            if (t2) {
+//                topBarDeviationMap.put(de2.timeDiffFromCur, sre);
+//            }
             DeviationEntity de3 = new DeviationEntity();
             boolean b1 = Deviation.isDeviation(Deviation.TYPE_LINE, Deviation.TYPE_BOTTOM, kEntityList, de3, isPreDeviation);
             if (b1) {
@@ -188,7 +211,7 @@ public class StockDeviationScanner {
 
     public static void main(String[] args) {
 //        scanTotalDeviation("30m");
-        scanTotalDeviation("60m", XueqiuDataHelper.ORDERBY_AMOUNT);
+        scanTotalDeviation("15m", XueqiuDataHelper.ORDERBY_AMOUNT);
 
         // 测试个股背离情况
 //        String symbol = "SH600295";
