@@ -211,7 +211,7 @@ public class StockDeviationScanner {
 
     public static void main(String[] args) {
 //        scanTotalDeviation("30m");
-        scanTotalDeviation("15m", XueqiuDataHelper.ORDERBY_AMOUNT);
+        scanTotalDeviation("30m", XueqiuDataHelper.ORDERBY_AMOUNT);
 
         // 测试个股背离情况
 //        String symbol = "SH600295";

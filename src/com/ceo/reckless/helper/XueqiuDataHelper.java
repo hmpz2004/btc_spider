@@ -49,6 +49,7 @@ public class XueqiuDataHelper {
     public static final String PERIOD_REAL_TIME = "5d";     // 分时
 
     public static Map<String, String> periodTypeMap = new HashMap<>();
+
     static {
         periodTypeMap.put("0", PERIOD_REAL_TIME);// 分时
         periodTypeMap.put("1m", PERIOD_1_MIN);// 1分
@@ -97,6 +98,7 @@ public class XueqiuDataHelper {
     public static final String TYPE_30 = "30";
 
     public static final String STOCKTYPE_SHA = "sha";
+    public static final String STOCKTYPE_SZA = "sza";
     public static final String EXCHANGE_CN = "CN";
 
     public static void requestXueqiuIndex() {
@@ -143,8 +145,7 @@ public class XueqiuDataHelper {
         return list;
     }
 
-    // 获取A股排名
-    public static List<SHStockRankEntity> requestAStockDefaultRankList(String orderType) {
+    public static List<SHStockRankEntity> requestAStockDefaultRankList(String orderType, String stockType) {
         try {
             int itemCount = 100;
 
@@ -152,7 +153,7 @@ public class XueqiuDataHelper {
             baseUb.appendParam(PARAM_KEY_SIZE, String.valueOf(itemCount));
             baseUb.appendParam(PARAM_KEY_ORDER, orderType);
             baseUb.appendParam(PARAM_KEY_EXCHANGE_SHA, EXCHANGE_CN);
-            baseUb.appendParam(PARAM_KEY_STOCKTYPE_SHA, STOCKTYPE_SHA);
+            baseUb.appendParam(PARAM_KEY_STOCKTYPE_SHA, stockType);
             baseUb.appendParam(PARAM_KEY_COLUMN_SHA, CONST_VALUE_COLUMN_SHA);
             baseUb.appendParam(PARAM_KEY_ORDERBY_SHA, ORDERBY_VOLUME);
             baseUb.appendParam(PARAM_KEY_TIMESTAMP, String.valueOf(System.currentTimeMillis()));
@@ -198,6 +199,19 @@ public class XueqiuDataHelper {
         }
 
         return null;
+    }
+
+    // 获取沪A股排名
+    public static List<SHStockRankEntity> requestAStockDefaultRankList(String orderType) {
+
+        List<SHStockRankEntity> listSha = requestAStockDefaultRankList(orderType, STOCKTYPE_SHA);
+        List<SHStockRankEntity> listSza = requestAStockDefaultRankList(orderType, STOCKTYPE_SZA);
+
+        List<SHStockRankEntity> totalList = new ArrayList<>();
+        totalList.addAll(listSha);
+        totalList.addAll(listSza);
+
+        return totalList;
     }
 
     // 获取港股排名
