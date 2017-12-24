@@ -185,7 +185,7 @@ public class Main {
 
             htmlTitle = coin + "_" + market + "_" + type;
 
-            new FundingDistributionScanner(needDecimal, price_formatter, baseDivisor, htmlTitle).genFundingChart(market, coin, typeNum, since, end, outputName);
+            new FundingDistributionScanner(needDecimal, price_formatter, baseDivisor, htmlTitle).genBtcFundingChart(market, coin, typeNum, since, end, outputName);
         } else {
             LogUtils.logDebugLine("funding usage:\n -m yunbi -c eos -t 5m -s 1502382000 -d \"#.00\" -o output.html\n -m yunbi -c eos -t 5m -d \"#.00\" -o eos_yunbi.html");
         }
@@ -265,7 +265,7 @@ public class Main {
 
 //        FundingDistributionScanner.needDecimal = false;
 //        FundingDistributionScanner.baseDivisor = 100;
-//        FundingDistributionScanner.genFundingChart("viabtc", "bcc", SosobtcDataHelper.TYPE_LEVEL_1_HOUR, 1502038836, "bcc_viabtc.html");
+//        FundingDistributionScanner.genBtcFundingChart("viabtc", "bcc", SosobtcDataHelper.TYPE_LEVEL_1_HOUR, 1502038836, "bcc_viabtc.html");
     }
 
     private static void releaseMain(String[] args) {

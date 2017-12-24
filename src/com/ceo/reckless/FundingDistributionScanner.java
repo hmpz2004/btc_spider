@@ -1,6 +1,7 @@
 package com.ceo.reckless;
 
 import com.ceo.reckless.entity.KEntity;
+import com.ceo.reckless.helper.HexunDataHelper;
 import com.ceo.reckless.helper.SosobtcDataHelper;
 import com.ceo.reckless.utils.FileUtils;
 import com.ceo.reckless.utils.LogUtils;
@@ -26,8 +27,11 @@ public class FundingDistributionScanner {
     public String htmlTitle = "default title";
 
     public boolean needDecimal = false;
+
+    // 控制小数点右侧的精度
     public String price_formatter = "#.";
 
+    // 控制小数点左侧的精度 target_value = target_value / baseDivisor
     public int baseDivisor = 10;
 
     public FundingDistributionScanner(boolean needDecimal, String formatString, int baseDivisor, String htmlTitle) {
@@ -158,7 +162,7 @@ public class FundingDistributionScanner {
         }
     }
 
-    public void genFundingChart(String market, String coin, int type, long since, long end, String outputFileName) {
+    public void genBtcFundingChart(String market, String coin, int type, long since, long end, String outputFileName) {
 
         LogUtils.logDebugLine("begin ...");
 
@@ -191,11 +195,45 @@ public class FundingDistributionScanner {
         }
     }
 
-//    public static void main(String[] args) {
-//
-//        if (Env.DEBUG) {
-//
-//        } else {
+    /**
+     * 生成期货资金分布图表
+     */
+    public void genFutureFundingChart(String code, String periodType, String startDateString, String outputFileName) {
+        List<KEntity> resultList = HexunDataHelper.requestKLIne(code, periodType, startDateString);
+        if (resultList == null || resultList.size() == 0) {
+            LogUtils.logDebugLine("kline list null");
+            return;
+        }
+
+        Map<Double, BigDecimal> priceMap = new TreeMap<Double, BigDecimal>(new Comparator<Double>() {
+            public int compare(Double obj1, Double obj2) {
+                // 降序排序
+                return obj1.compareTo(obj2);
+            }
+        });
+
+        Map<Double, BigDecimal> volumeMap = new TreeMap<Double, BigDecimal>(new Comparator<Double>() {
+            public int compare(Double obj1, Double obj2) {
+                // 降序排序
+                return obj1.compareTo(obj2);
+            }
+        });
+
+        long since = 0;
+        long end = System.currentTimeMillis();
+        calculateFundingDistribution(resultList, since, end, priceMap, volumeMap);
+        if (Env.DEBUG) {
+            outputMapToConsole(priceMap, volumeMap);
+        }
+        outputHtmlBarChart(priceMap, outputFileName);
+        LogUtils.logDebugLine("done!");
+    }
+
+    public static void main(String[] args) {
+
+        if (Env.DEBUG) {
+
+        } else {
 //            CommandLineParser parser = new BasicParser();
 //            Options options = new Options();
 //            options.addOption("h", "help", false, "Print this usage information");
@@ -243,7 +281,7 @@ public class FundingDistributionScanner {
 //
 //                    htmlTitle = coin + "_" + market + "_" + type;
 //
-//                    genFundingChart(market, coin, typeNum, since, outputName);
+//                    genBtcFundingChart(market, coin, typeNum, since, outputName);
 //                }
 //                if (cmd.getOptions().length == 0) {
 //                    LogUtils.logDebugLine("usage :\njava -jar parser.jar -m yunbi -c eos -t 5m -s 1502382000 -o output.html");
@@ -251,6 +289,14 @@ public class FundingDistributionScanner {
 //            } catch (ParseException e) {
 //                LogUtils.logError(e);
 //            }
-//        }
-//    }
+        }
+
+        // test genFutureFundingChart()
+        FundingDistributionScanner scanner = new FundingDistributionScanner(false, "1", 1, "期货行情");
+        String code = "DCEI1805";
+        String fileName = "DCEI1805.html";
+//        String code = "SHFE3rb1805";
+//        String fileName = "rb1805.html";
+        scanner.genFutureFundingChart(code, "1h", "20171218210000", fileName);
+    }
 }
