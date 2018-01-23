@@ -65,7 +65,7 @@ public class HexunDataHelper {
          */
     }
 
-    public static List<KEntity> requestKLIne(String code, String periodType, String startDateString) {
+    public static List<KEntity> requestKLine(String code, String periodType, String startDateString) {
 
         List<KEntity> resultList = new ArrayList<>();
 
@@ -160,7 +160,7 @@ public class HexunDataHelper {
     public static void main(String[] args) {
 
         // 测试商品品种k线
-        List<KEntity> list = requestKLIne("DCEI1805", "1h", "20171030210000");
+        List<KEntity> list = requestKLine("DCEI1805", "1h", "20171030210000");
         for (KEntity item : list) {
             LogUtils.logDebugLine(item.open + " " + item.high + " " + item.low + " " + item.close + " " + item.volume);
         }

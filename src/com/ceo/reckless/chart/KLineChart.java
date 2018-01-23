@@ -51,7 +51,8 @@ public class KLineChart {
     }
 
     /**
-     * js报表不要超过166个k线数据
+     * js报表不要超过150个k线数据
+     * k线个数貌似跟网页或者js报表的宽度有关
      * @param htmlTitle
      * @param kEntityList1
      * @param kEntityList2
@@ -59,11 +60,13 @@ public class KLineChart {
      */
     public static void outputKLineShrinkChart(String htmlTitle, List<KEntity> kEntityList1, List<KEntity> kEntityList2, String outputFileName) {
 
+        int LIMIT = 150;
+
         StringBuilder sb1 = new StringBuilder();
         int i = 0, j = 0;
         sb1.append("[\n");
-        j = (kEntityList1.size() - 166) > 0 ? kEntityList1.size() - 166 : 0;
-        for (j = kEntityList1.size() - 166; j < kEntityList1.size(); j++) {
+        j = (kEntityList1.size() - LIMIT) > 0 ? kEntityList1.size() - LIMIT : 0;
+        for (j = kEntityList1.size() - LIMIT; j < kEntityList1.size(); j++) {
             KEntity kItem = kEntityList1.get(j);
             if (i++ != 0) {
                 sb1.append(",\n");
@@ -82,7 +85,7 @@ public class KLineChart {
         StringBuilder sb2 = new StringBuilder();
         i = 0;
         sb2.append("[\n");
-        j = (kEntityList2.size() - 166) > 0 ? kEntityList2.size() - 166 : 0;
+        j = (kEntityList2.size() - LIMIT) > 0 ? kEntityList2.size() - LIMIT : 0;
         for (; j < kEntityList2.size(); j++) {
             KEntity kItem = kEntityList2.get(j);
             if (i++ != 0) {

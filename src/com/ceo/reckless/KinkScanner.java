@@ -2,6 +2,7 @@ package com.ceo.reckless;
 
 import com.ceo.reckless.chart.KLineChart;
 import com.ceo.reckless.entity.KEntity;
+import com.ceo.reckless.helper.AicoinDataHelper;
 import com.ceo.reckless.helper.SosobtcDataHelper;
 import com.ceo.reckless.utils.FileUtils;
 import com.ceo.reckless.utils.LogUtils;
@@ -60,13 +61,26 @@ public class KinkScanner {
     public static void main(String[] args) {
 
         try {
-            String jsonResult = SosobtcDataHelper.httpQueryKData("huobi", "btc", SosobtcDataHelper.TYPE_LEVEL_1_HOUR, 0);
-            List<KEntity> list = SosobtcDataHelper.parseKlineToList(jsonResult);
+//            String jsonResult = SosobtcDataHelper.httpQueryKData("huobi", "btc", SosobtcDataHelper.TYPE_LEVEL_1_HOUR, 0);
+//            List<KEntity> list = SosobtcDataHelper.parseKlineToList(jsonResult);
+//            List<KEntity> slist = shrinkKLine(list);
+//
+//            LogUtils.logDebugLine("list size " + list.size() + " slist size " + slist.size());
+//
+//            KLineChart.outputKLineShrinkChart("im title", list, slist, "test_double_kline_chart.html");
+
+
+            String market = "okex";
+            String targetCoin = "ethquarter";
+            String srcCoin = "usd";
+            String periodType = "1h";
+            long since = 0;
+            List<KEntity> list = AicoinDataHelper.requestKLine(market, targetCoin, srcCoin, periodType, 0);
             List<KEntity> slist = shrinkKLine(list);
 
             LogUtils.logDebugLine("list size " + list.size() + " slist size " + slist.size());
 
-            KLineChart.outputKLineShrinkChart("im title", list, slist, "test_double_kline_chart.html");
+            KLineChart.outputKLineShrinkChart("im title", list, slist, "ethquarter_shrink_kline_chart.html");
         } catch (Exception e) {
             LogUtils.logError(e);
         }

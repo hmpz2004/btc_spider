@@ -1,12 +1,15 @@
 package com.ceo.reckless.entity;
 
-public class MACDEntity {
+import java.util.HashMap;
+import java.util.Map;
+
+public class MAEntity {
+
     public long[] timeArray;
-    public double[] difArray;
-    public double[] deaArray;
-    public double[] barArray;
+    public double[] valueArray;
     public int emptyNum;
     public int size;
+    public Map<Long, Double> timeValueMap = new HashMap<>();
     /**
      * 记录idx从0到大的顺序也是时间从小到大的顺序
      * 末尾0的个数为emptyNum

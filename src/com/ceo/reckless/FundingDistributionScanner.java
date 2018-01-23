@@ -1,11 +1,11 @@
 package com.ceo.reckless;
 
 import com.ceo.reckless.entity.KEntity;
+import com.ceo.reckless.helper.AicoinDataHelper;
 import com.ceo.reckless.helper.HexunDataHelper;
 import com.ceo.reckless.helper.SosobtcDataHelper;
 import com.ceo.reckless.utils.FileUtils;
 import com.ceo.reckless.utils.LogUtils;
-import org.apache.commons.cli.*;
 
 import java.io.File;
 import java.math.BigDecimal;
@@ -162,44 +162,72 @@ public class FundingDistributionScanner {
         }
     }
 
-    public void genBtcFundingChart(String market, String coin, int type, long since, long end, String outputFileName) {
+//    public void genBtcFundingChart(String market, String coin, int type, long since, long end, String outputFileName) {
+//
+//        LogUtils.logDebugLine("begin ...");
+//
+//        String result = SosobtcDataHelper.httpQueryKData(market, coin, type, since);
+//        if (result != null && result.length() != 0) {
+//            List<KEntity> keList = SosobtcDataHelper.parseKlineToList(result);
+//
+//            Map<Double, BigDecimal> priceMap = new TreeMap<Double, BigDecimal>(new Comparator<Double>() {
+//                public int compare(Double obj1, Double obj2) {
+//                    // 降序排序
+//                    return obj1.compareTo(obj2);
+//                }
+//            });
+//
+//            Map<Double, BigDecimal> volumeMap = new TreeMap<Double, BigDecimal>(new Comparator<Double>() {
+//                public int compare(Double obj1, Double obj2) {
+//                    // 降序排序
+//                    return obj1.compareTo(obj2);
+//                }
+//            });
+//
+//            calculateFundingDistribution(keList, since, end, priceMap, volumeMap);
+//            if (Env.DEBUG) {
+//                outputMapToConsole(priceMap, volumeMap);
+//            }
+//            outputHtmlBarChart(priceMap, outputFileName);
+//            LogUtils.logDebugLine("done!");
+//        } else {
+//            LogUtils.logDebugLine("http post " + SosobtcDataHelper.URL_KLINE + " query return null");
+//        }
+//    }
+
+    public void genBtcFundingChart(String market, String targetCoin, String srcCoin, String type, long since, long end, String outputFileName) {
 
         LogUtils.logDebugLine("begin ...");
 
-        String result = SosobtcDataHelper.httpQueryKData(market, coin, type, since);
-        if (result != null && result.length() != 0) {
-            List<KEntity> keList = SosobtcDataHelper.parseKlineToList(result);
+        List<KEntity> keList = AicoinDataHelper.requestKLine(market, targetCoin, srcCoin, type, since);
 
-            Map<Double, BigDecimal> priceMap = new TreeMap<Double, BigDecimal>(new Comparator<Double>() {
-                public int compare(Double obj1, Double obj2) {
-                    // 降序排序
-                    return obj1.compareTo(obj2);
-                }
-            });
-
-            Map<Double, BigDecimal> volumeMap = new TreeMap<Double, BigDecimal>(new Comparator<Double>() {
-                public int compare(Double obj1, Double obj2) {
-                    // 降序排序
-                    return obj1.compareTo(obj2);
-                }
-            });
-
-            calculateFundingDistribution(keList, since, end, priceMap, volumeMap);
-            if (Env.DEBUG) {
-                outputMapToConsole(priceMap, volumeMap);
+        Map<Double, BigDecimal> priceMap = new TreeMap<Double, BigDecimal>(new Comparator<Double>() {
+            public int compare(Double obj1, Double obj2) {
+                // 降序排序
+                return obj1.compareTo(obj2);
             }
-            outputHtmlBarChart(priceMap, outputFileName);
-            LogUtils.logDebugLine("done!");
-        } else {
-            LogUtils.logDebugLine("http post " + SosobtcDataHelper.URL_KLINE + " query return null");
+        });
+
+        Map<Double, BigDecimal> volumeMap = new TreeMap<Double, BigDecimal>(new Comparator<Double>() {
+            public int compare(Double obj1, Double obj2) {
+                // 降序排序
+                return obj1.compareTo(obj2);
+            }
+        });
+
+        calculateFundingDistribution(keList, since, end, priceMap, volumeMap);
+        if (Env.DEBUG) {
+            outputMapToConsole(priceMap, volumeMap);
         }
+        outputHtmlBarChart(priceMap, outputFileName);
+        LogUtils.logDebugLine("done!");
     }
 
     /**
      * 生成期货资金分布图表
      */
     public void genFutureFundingChart(String code, String periodType, String startDateString, String outputFileName) {
-        List<KEntity> resultList = HexunDataHelper.requestKLIne(code, periodType, startDateString);
+        List<KEntity> resultList = HexunDataHelper.requestKLine(code, periodType, startDateString);
         if (resultList == null || resultList.size() == 0) {
             LogUtils.logDebugLine("kline list null");
             return;

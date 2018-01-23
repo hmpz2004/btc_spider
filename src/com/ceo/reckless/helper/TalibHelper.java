@@ -3,8 +3,10 @@ package com.ceo.reckless.helper;
 import com.ceo.reckless.Env;
 import com.ceo.reckless.entity.KEntity;
 import com.ceo.reckless.entity.MACDEntity;
+import com.ceo.reckless.entity.MAEntity;
 import com.ceo.reckless.utils.LogUtils;
 import com.tictactec.ta.lib.Core;
+import com.tictactec.ta.lib.MAType;
 import com.tictactec.ta.lib.MInteger;
 import com.tictactec.ta.lib.RetCode;
 
@@ -72,9 +74,50 @@ public class TalibHelper {
         int j;
         for (i = outBegIdx.value, j = 0; i < keList.size() && j < result.timeArray.length; i++, j++) {
             result.timeArray[j] = keList.get(i).timestamp;
+            // bar都显示的是2倍大小
             result.barArray[j] += result.barArray[j];
         }
 
         return result;
+    }
+
+    public static MAEntity genMa(List<KEntity> keList, int optInTimePeriod) {
+
+        if (keList == null || keList.size() == 0) {
+            LogUtils.logDebugLine("k line data list null");
+            return null;
+        }
+
+        double[] inReal = new double[keList.size()];
+        int i = 0;
+        for (KEntity kitem : keList) {
+            inReal[i++] = kitem.volume;
+        }
+
+        Core core = new Core();
+
+        int startIdx = 0;
+        int endIdx = keList.size() - 1;
+        MInteger outBegIdx = new MInteger();
+        MInteger outNBElement = new MInteger();
+        double[] outReal = new double[keList.size()];
+        // MAType.Sma simple ma 等同于通常说的ma
+        RetCode retCode = core.movingAverage(startIdx, endIdx, inReal, optInTimePeriod, MAType.Sma, outBegIdx, outNBElement, outReal);
+        if (retCode != RetCode.Success) {
+            LogUtils.logDebugLine("genMa() error " + retCode.name());
+            return null;
+        }
+
+        MAEntity maEntity = new MAEntity();
+        maEntity.timeArray = new long[keList.size()];
+        maEntity.emptyNum = outBegIdx.value;
+        maEntity.valueArray = outReal;
+        int j;
+        for (i = outBegIdx.value, j = 0; i < keList.size() && j < maEntity.timeArray.length; i++, j++) {
+            maEntity.timeArray[j] = keList.get(i).timestamp;
+            maEntity.timeValueMap.put(maEntity.timeArray[j], outReal[j]);
+        }
+
+        return maEntity;
     }
 }

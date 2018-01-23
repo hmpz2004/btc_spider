@@ -148,19 +148,15 @@ public class Main {
 
     private static void callFunding(CommandLine cmd) {
         if (cmd.hasOption("m") &&
-                cmd.hasOption("c") &&
+                cmd.hasOption("tc") &&
+                cmd.hasOption("sc") &&
                 cmd.hasOption("t") &&
                 cmd.hasOption("d") &&
                 cmd.hasOption("o")) {
             String market = cmd.getOptionValue("m");
-            String coin = cmd.getOptionValue("c");
+            String targetCoin = cmd.getOptionValue("tc");
+            String srcCoin = cmd.getOptionValue("sc");
             String type = cmd.getOptionValue("t");
-            int typeNum = 0;
-            if (SosobtcDataHelper.typeMap.containsKey(type)) {
-                typeNum = SosobtcDataHelper.typeMap.get(type);
-            } else {
-                LogUtils.logDebugLine("time type error");
-            }
             String formatString = cmd.getOptionValue("d");
             boolean needDecimal = false;
             String price_formatter = "";
@@ -183,11 +179,25 @@ public class Main {
                 end = Long.valueOf(cmd.getOptionValue("e"));
             }
 
-            htmlTitle = coin + "_" + market + "_" + type;
+            htmlTitle = targetCoin + "_" + market + "_" + type;
 
-            new FundingDistributionScanner(needDecimal, price_formatter, baseDivisor, htmlTitle).genBtcFundingChart(market, coin, typeNum, since, end, outputName);
+            new FundingDistributionScanner(needDecimal, price_formatter, baseDivisor, htmlTitle).genBtcFundingChart(market, targetCoin, srcCoin, type, since, end, outputName);
         } else {
-            LogUtils.logDebugLine("funding usage:\n -m yunbi -c eos -t 5m -s 1502382000 -d \"#.00\" -o output.html\n -m yunbi -c eos -t 5m -d \"#.00\" -o eos_yunbi.html");
+//            LogUtils.logDebugLine("funding usage:\n -m yunbi -c eos -t 5m -s 1502382000 -d \"#.00\" -o output.html\n -m yunbi -c eos -t 5m -d \"#.00\" -o eos_yunbi.html");
+            LogUtils.logDebugLine("funding usage:");
+            LogUtils.logDebugLine("-m  market");
+            LogUtils.logDebugLine("-tc target coin");
+            LogUtils.logDebugLine("-sc src    coin");
+            LogUtils.logDebugLine("-s  since");
+            LogUtils.logDebugLine("-t  period type");
+            LogUtils.logDebugLine("-o  output file name");
+            LogUtils.logDebugLine("-d  divisor 100 10 1 #.0 #.00 #.000");
+            LogUtils.logDebugLine("");
+            LogUtils.logDebugLine("-m huobipro -tc eos -sc usdt -t 5m -s 1502382000 -d \"#.00\" -o output.html");
+            LogUtils.logDebugLine("-m huobipro -tc eos -t 5m -d \"#.00\" -o eos_usdt_huobipro.html");
+            LogUtils.logDebugLine("-m okex -tc ethquarter -sc usd -t 15m -d 10 -o eth_usdt.html");
+            // okcoinfuturesbtcquarterusd
+            LogUtils.logDebugLine("-m okcoinfutures -tc btcquarter -sc usd -t 1h -d 100 -o btc_usdt.html");
         }
     }
 
@@ -283,6 +293,8 @@ public class Main {
         options.addOption("o", "output file name", true, "File to save program output to");
         options.addOption("e", "endtime", true, "");
         options.addOption("a", "all", true, "");
+        options.addOption("tc", "target_coin", true, "");
+        options.addOption("sc", "src_coin", true, "");
 //        options.addOption("i", "increase drop", true, "");
 
         try {
@@ -324,10 +336,22 @@ public class Main {
         LogUtils.logDebugLine("normal : ");
         LogUtils.logDebugLine("-f scan_deviation -a a -m bter -t 15m");
         LogUtils.logDebugLine("-f scan_deviation -m yunbi -c eos -t 5m -o eos_yunbi.html");
-        LogUtils.logDebugLine("-f funding -m huobi -c etc -t 1h -d 1 -o etc_huobi.html");
+        LogUtils.logDebugLine("-f funding -m huobipro -tc eos -sc usdt -t 1h -d \"#.00\" -o eos_usdt_huobipro.html");
         LogUtils.logDebugLine("-f resistance_support -m yunbi -c eos -t 5m");
         LogUtils.logDebugLine("-f scan_resistance_support -m yunbi -t 5m");
         LogUtils.logDebugLine("-f increase_drop -m yunbi -o yunbi_ins.html");
+        LogUtils.logDebugLine("target coin src coin : ");
+        LogUtils.logDebugLine("okexethquarterusd okex eth 季度");
+        LogUtils.logDebugLine("okexethweekusd okex eth 当周");
+        LogUtils.logDebugLine("okexethnextweekusd okex eth 次周");
+        LogUtils.logDebugLine("okcoinfuturesbtcnextweekusd okcoin btc 次周");
+        LogUtils.logDebugLine("binancebnbbtc binance bnb btc");
+        LogUtils.logDebugLine("gatebtcusdt gate btc usdt");
+        LogUtils.logDebugLine("market : ");
+        LogUtils.logDebugLine("binance");
+        LogUtils.logDebugLine("okex");
+        LogUtils.logDebugLine("huobipro");
+        LogUtils.logDebugLine("gate");
     }
 
     public static void main(String args[]) {
