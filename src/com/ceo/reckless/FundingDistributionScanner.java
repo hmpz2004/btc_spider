@@ -72,12 +72,14 @@ public class FundingDistributionScanner {
 
                 cnt++;
 
+                double priceToCal = (keItem.open + keItem.close) / 2;
+
                 String value = "";
                 if (needDecimal) {
                     DecimalFormat df = new DecimalFormat(price_formatter);
-                    value = df.format(keItem.close);
+                    value = df.format(priceToCal);
                 } else {
-                    long close = (long) keItem.close;
+                    long close = (long) priceToCal;
                     close = (close / baseDivisor) * baseDivisor;
                     value = String.valueOf(close);
                 }
@@ -92,7 +94,7 @@ public class FundingDistributionScanner {
                     targetVolume = volumeMap.get(closePrice);
                 }
 //                target += (keItem.close * keItem.volume);
-                BigDecimal c = new BigDecimal(keItem.close);
+                BigDecimal c = new BigDecimal(priceToCal);
                 BigDecimal v = new BigDecimal(keItem.volume);
                 targetAmount = targetAmount.add(c.multiply(v));
                 targetVolume = targetVolume.add(v);
