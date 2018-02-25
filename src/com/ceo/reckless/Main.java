@@ -1,11 +1,17 @@
 package com.ceo.reckless;
 
+import com.ceo.reckless.entity.KEntity;
+import com.ceo.reckless.helper.AicoinDataHelper;
 import com.ceo.reckless.helper.SosobtcDataHelper;
+import com.ceo.reckless.utils.FileUtils;
 import com.ceo.reckless.utils.LogUtils;
 import org.apache.commons.cli.*;
 
+import java.io.File;
 import java.text.DecimalFormat;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Main {
 
@@ -146,6 +152,166 @@ public class Main {
         }
     }
 
+    private static void callScanVolume(CommandLine cmd) {
+
+        //<<>>
+        if (true) {
+//        if (cmd.hasOption("i") &&
+//                cmd.hasOption("t")) {
+            //<<>>
+//            String inputFileName = cmd.getOptionValue("i");
+//            String type = cmd.getOptionValue("t");
+            String inputFileName = "";
+            String type = "2h";
+
+            long since = 0;
+            //<<>>
+//            if (cmd.hasOption("s")) {
+//                since = Long.valueOf(cmd.getOptionValue("s"));
+//            }
+
+            Map<String, List<KEntity>> strongMap = new HashMap<>();
+            Map<String, List<KEntity>> weakMap = new HashMap<>();
+
+            String basePath = System.getProperty("user.dir");
+
+
+            if (inputFileName == null || inputFileName.equals("")) {
+                inputFileName = "symbols.txt";
+            }
+
+            LogUtils.logDebugLine("processing ...");
+
+            Map<String, Set<String>> strongCoinSymbolSetMap = new HashMap<>();
+            Map<String, Set<String>> weakCoinSymbolSetMap = new HashMap<>();
+
+            // 交易所过滤
+            String pre = "^(okex|huobipro|gate|binance)";
+            String mid = ".*";
+            // 交易对过滤
+            String suf = "(btc|eth|usdt|qc|bnb|bch)$";
+
+            String regexTotal = pre + mid + suf;
+            Pattern patternTotal = Pattern.compile(regexTotal);
+            String regexPrefix = pre;
+            Pattern patternPrefix = Pattern.compile(regexPrefix);
+            String regexSuffix = suf;
+            Pattern patternSuffix = Pattern.compile(regexSuffix);
+
+            File inputFile = new File(basePath + File.separator + inputFileName);
+            byte[] fileContent = FileUtils.readFileByte(inputFile);
+            String fileContentString = new String(fileContent);
+            String[] lineArray = fileContentString.split("\n");
+            for (String itemLine : lineArray) {
+                String symbol = itemLine;
+                boolean status = false;
+
+                Matcher matcherLine = patternTotal.matcher(symbol);
+                while (matcherLine.find()) {
+                    // 该行符合筛选条件
+                    status = true;
+                }
+                if (!status) {
+                    // 没命中交易所和币种
+                    continue;
+                }
+
+//                LogUtils.logDebugLine("symbol : " + symbol);
+
+                List<KEntity> list = AicoinDataHelper.requestKLineBySymbol(symbol, type, since);
+
+                Map<String, List<KEntity>> resultMap = VolumeScanner.scanRecentlyBigVolume(list);
+                if (resultMap != null && resultMap.size() != 0) {
+
+                    // 切分出交易所、币种、交易对币种
+                    String coin = null;
+                    String lastCoin = null;
+                    String exchange = null;
+                    Matcher matcherPrefix = patternPrefix.matcher(symbol);
+                    while (matcherPrefix.find()) {
+                        String prefix = matcherPrefix.group();
+                        // 匹配前缀得到交易所
+                        exchange = prefix;
+                        coin = symbol.replace(prefix, "");
+
+                        Matcher matcherSuffix = patternSuffix.matcher(coin);
+                        if (matcherSuffix.find()) {
+                            String suffix = matcherSuffix.group();
+                            // 匹配后缀得到交易对币种
+                            lastCoin = suffix;
+                            // 切分得到币种
+                            coin = coin.substring(0, coin.length() - suffix.length());
+                        }
+                    }
+
+                    List<KEntity> strongList = resultMap.get(VolumeScanner.KEY_STRONG);
+                    if (strongList != null && strongList.size() != 0) {
+                        strongMap.put(symbol, strongList);
+                        Set strongSymbolSet = strongCoinSymbolSetMap.get(coin);
+                        if (strongSymbolSet == null) {
+                            strongSymbolSet = new HashSet();
+                        }
+                        strongSymbolSet.add(exchange + "-" + lastCoin);
+                        strongCoinSymbolSetMap.put(coin, strongSymbolSet);
+                    }
+                    List<KEntity> weakList = resultMap.get(VolumeScanner.KEY_WEAK);
+                    if (weakList != null && weakList.size() != 0) {
+                        weakMap.put(symbol, weakList);
+                        Set weakSymbolSet = weakCoinSymbolSetMap.get(coin);
+                        if (weakSymbolSet == null) {
+                            weakSymbolSet = new HashSet();
+                        }
+                        weakSymbolSet.add(exchange + "-" + lastCoin);
+                        weakCoinSymbolSetMap.put(coin, weakSymbolSet);
+                    }
+                }
+            }
+
+            LogUtils.logDebugLine("==============================");
+            LogUtils.logDebugLine("strong filtered coin\n");
+            for (Map.Entry<String, Set<String>> itemEntry : strongCoinSymbolSetMap.entrySet()) {
+                String coin = itemEntry.getKey();
+                if (coin == null) {
+                    continue;
+                }
+                LogUtils.logDebug(coin + "  \t");
+                Set<String> valueSet = itemEntry.getValue();
+                for (String itemValue : valueSet) {
+                    LogUtils.logDebug(itemValue + "     \t");
+                }
+                LogUtils.logDebug("\n");
+            }
+
+//            LogUtils.logDebugLine("==============================");
+//            LogUtils.logDebugLine("strong filtered symbols\n");
+//            // 所有交易所所有币种已经遍历完成,输出结果
+//            for (Map.Entry<String, List<KEntity>> itemEntry : strongMap.entrySet()) {
+//                LogUtils.logDebugLine(itemEntry.getKey());
+//            }
+
+            LogUtils.logDebugLine("==============================");
+            LogUtils.logDebugLine("weak filtered coin\n");
+            for (Map.Entry<String, Set<String>> itemEntry : weakCoinSymbolSetMap.entrySet()) {
+                String coin = itemEntry.getKey();
+                if (coin == null) {
+                    continue;
+                }
+                LogUtils.logDebug(coin + "  \t");
+                Set<String> valueSet = itemEntry.getValue();
+                for (String itemValue : valueSet) {
+                    LogUtils.logDebug(itemValue + "     \t");
+                }
+                LogUtils.logDebug("\n");
+            }
+
+//            LogUtils.logDebugLine("==============================");
+//            LogUtils.logDebugLine("weak filtered symbols\n");
+//            for (Map.Entry<String, List<KEntity>> itemEntry : weakMap.entrySet()) {
+//                LogUtils.logDebugLine(itemEntry.getKey());
+//            }
+        }
+    }
+
     private static void callFunding(CommandLine cmd) {
         if (cmd.hasOption("m") &&
                 cmd.hasOption("tc") &&
@@ -198,6 +364,62 @@ public class Main {
             LogUtils.logDebugLine("-m okex -tc ethquarter -sc usd -t 15m -d 10 -o eth_usdt.html");
             // okcoinfuturesbtcquarterusd
             LogUtils.logDebugLine("-m okcoinfutures -tc btcquarter -sc usd -t 1h -d 100 -o btc_usdt.html");
+        }
+    }
+
+    private static void callBullVsShort(CommandLine cmd) {
+        if (cmd.hasOption("m") &&
+                cmd.hasOption("tc") &&
+                cmd.hasOption("sc") &&
+                cmd.hasOption("t") &&
+                cmd.hasOption("d") &&
+                cmd.hasOption("o")) {
+            String market = cmd.getOptionValue("m");
+            String targetCoin = cmd.getOptionValue("tc");
+            String srcCoin = cmd.getOptionValue("sc");
+            String type = cmd.getOptionValue("t");
+            String formatString = cmd.getOptionValue("d");
+            boolean needDecimal = false;
+            String price_formatter = "";
+            int baseDivisor = 0;
+            String htmlTitle = "";
+            if (formatString.contains("#")) {
+                needDecimal = true;
+                price_formatter = formatString;
+            } else {
+                baseDivisor = Integer.valueOf(cmd.getOptionValue("d"));
+            }
+            String outputName = cmd.getOptionValue("o");
+
+            long since = 0;
+            if (cmd.hasOption("s")) {
+                since = Long.valueOf(cmd.getOptionValue("s"));
+            }
+
+            long end = 0;
+            if (cmd.hasOption("e")) {
+                end = Long.valueOf(cmd.getOptionValue("e"));
+            }
+
+            htmlTitle = targetCoin + "_" + market + "_" + type;
+
+            new FundingDistributionScanner(needDecimal, price_formatter, baseDivisor, htmlTitle).genBullVsShortChart(market, targetCoin, srcCoin, type, since, end, outputName);
+        } else {
+            LogUtils.logDebugLine("bull_short usage:");
+            LogUtils.logDebugLine("-m  market");
+            LogUtils.logDebugLine("-tc target coin");
+            LogUtils.logDebugLine("-sc src    coin");
+            LogUtils.logDebugLine("-s  since");
+            LogUtils.logDebugLine("-t  period type");
+            LogUtils.logDebugLine("-o  output file name");
+            LogUtils.logDebugLine("-d  divisor 100 10 1 #.0 #.00 #.000");
+            LogUtils.logDebugLine("");
+            LogUtils.logDebugLine("-m huobipro -tc eos -sc usdt -t 5m -s 1502382000 -d \"#.00\" -o output.html");
+            LogUtils.logDebugLine("-m huobipro -tc eos -t 5m -d \"#.00\" -o eos_usdt_huobipro_bull_short.html");
+            LogUtils.logDebugLine("-m okex -tc ethquarter -sc usd -t 15m -d 10 -o eth_usdt_boll_short.html");
+            // okcoinfuturesbtcquarterusd
+            LogUtils.logDebugLine("-m okcoinfutures -tc btcquarter -sc usd -t 5m -d 100 -o btc_usdt_bull_short.html");
+            LogUtils.logDebugLine("-m okex -tc ethquarter -sc usd -t 5m -d 10 -o eth_usdt_bull_short.html");
         }
     }
 
@@ -270,12 +492,14 @@ public class Main {
     }
 
     private static void testMain(String args[]) {
-        MarketWaveMotionScanner.scanDeviation("huobi", "btc", SosobtcDataHelper.TYPE_LEVEL_15_MIN, 0, 0, "dif_k_spot_line.html", null);
-        MarketWaveMotionScanner.scanResistanceSupport("huobi", "btc", SosobtcDataHelper.TYPE_LEVEL_2_HOUR, 0, null, null);
+//        MarketWaveMotionScanner.scanDeviation("huobi", "btc", SosobtcDataHelper.TYPE_LEVEL_15_MIN, 0, 0, "dif_k_spot_line.html", null);
+//        MarketWaveMotionScanner.scanResistanceSupport("huobi", "btc", SosobtcDataHelper.TYPE_LEVEL_2_HOUR, 0, null, null);
 
 //        FundingDistributionScanner.needDecimal = false;
 //        FundingDistributionScanner.baseDivisor = 100;
 //        FundingDistributionScanner.genBtcFundingChart("viabtc", "bcc", SosobtcDataHelper.TYPE_LEVEL_1_HOUR, 1502038836, "bcc_viabtc.html");
+
+        callScanVolume(null);
     }
 
     private static void releaseMain(String[] args) {
@@ -295,6 +519,7 @@ public class Main {
         options.addOption("a", "all", true, "");
         options.addOption("tc", "target_coin", true, "");
         options.addOption("sc", "src_coin", true, "");
+        options.addOption("i", "input_file", true, "");
 //        options.addOption("i", "increase drop", true, "");
 
         try {
@@ -302,12 +527,15 @@ public class Main {
             if (cmd.hasOption("h")) {
                 outputUsage();
             } else if (cmd.hasOption("v")) {
-                LogUtils.logDebugLine("version : 1.1 by 霸道总裁预科班\nwx:417249073");
+                LogUtils.logDebugLine("version : 1.2 by 霸道总裁预科班\nwx:417249073");
             } else if (cmd.hasOption("f")) {
                 String functionString = cmd.getOptionValue("f");
                 switch (functionString) {
                     case "funding" :
                         callFunding(cmd);
+                        break;
+                    case "bull_short":
+                        callBullVsShort(cmd);
                         break;
                     case "scan_deviation":
                         callScanDeviation(cmd);
@@ -320,6 +548,10 @@ public class Main {
                         break;
                     case "increase_drop":
                         callIncreaseDrop(cmd);
+                        break;
+                    case "volume_scan":
+                        callScanVolume(cmd);
+                        break;
                 }
 
             }
@@ -340,6 +572,7 @@ public class Main {
         LogUtils.logDebugLine("-f resistance_support -m yunbi -c eos -t 5m");
         LogUtils.logDebugLine("-f scan_resistance_support -m yunbi -t 5m");
         LogUtils.logDebugLine("-f increase_drop -m yunbi -o yunbi_ins.html");
+        LogUtils.logDebugLine("-f bull_short -m okex -tc ethquarter -sc usd -t 15m -d 10 -o eth_usdt.html");
         LogUtils.logDebugLine("target coin src coin : ");
         LogUtils.logDebugLine("okexethquarterusd okex eth 季度");
         LogUtils.logDebugLine("okexethweekusd okex eth 当周");
@@ -352,6 +585,7 @@ public class Main {
         LogUtils.logDebugLine("okex");
         LogUtils.logDebugLine("huobipro");
         LogUtils.logDebugLine("gate");
+        LogUtils.logDebugLine("bitstampbtcusd");
     }
 
     public static void main(String args[]) {

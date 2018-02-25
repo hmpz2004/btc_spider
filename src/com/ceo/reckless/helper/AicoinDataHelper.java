@@ -164,7 +164,9 @@ public class AicoinDataHelper {
                                 }
                             }
                         }
-                        LogUtils.logDebugLine("data size : " + jaData.length());
+                        if (AICOIN_DEBUG) {
+                            LogUtils.logDebugLine("data size : " + jaData.length());
+                        }
 
                         return resultList;
                     }

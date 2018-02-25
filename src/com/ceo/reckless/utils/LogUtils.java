@@ -14,14 +14,14 @@ public class LogUtils {
     private static SimpleDateFormat sFormatter = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
 
     public static void logDebugLine(String s) {
-//        System.out.println(s);
+        System.out.println(s);
 
-        System.out.println(String.format(LOG_FORMATTER, threadName(), stackInfo(new Throwable().getStackTrace()), s));
+//        System.out.println(String.format(LOG_FORMATTER, threadName(), stackInfo(new Throwable().getStackTrace()), s));
     }
 
     public static void logDebug(String s) {
-//        System.out.print(s);
-        System.out.print(String.format(LOG_FORMATTER, threadName(), stackInfo(new Throwable().getStackTrace()), s));
+        System.out.print(s);
+//        System.out.print(String.format(LOG_FORMATTER, threadName(), stackInfo(new Throwable().getStackTrace()), s));
     }
 
     public static void logError(Exception e) {

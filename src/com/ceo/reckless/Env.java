@@ -8,7 +8,11 @@ public class Env {
     public static int MACD_PERIOD_LOW = 26;
     public static int MACD_PERIOD_SIGNAL = 9;
 
+    // 根据k线数据计算当前近期走势多空两方力度,计算所用k线的个数
+    public static int BULL_VS_SHORT_K_ITEM_INTERVAL = 50;
+
     public static String BAR_CHART_HTML_FILE_PATH = "./column-rotated-labels.html";
+    public static String LINE_CHART_HTML_FILE_PATH = "./spline.html";
     public static String Test_BASE_LINE_CHART_HTML_FILE_PATH = "./basic-line.html";
     public static String KLINE_CHART_HTML_FILE_PATH = "./candlestick-and-volume.html";
     public static String KLINE_SHRINK_CHART_HTML_FILE_PATH = "./candlestick-and-volume_double.html";
