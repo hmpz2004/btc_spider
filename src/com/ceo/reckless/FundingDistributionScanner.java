@@ -63,10 +63,10 @@ public class FundingDistributionScanner {
             int cnt = 0;
             for (KEntity keItem : keList) {
 
-                if (keItem.timestamp < since * 1000L) {
+                if (keItem.timestamp < since) {
                     continue;
                 }
-                if (end != 0 && keItem.timestamp > end * 1000L) {
+                if (end != 0 && keItem.timestamp > end) {
                     continue;
                 }
 
@@ -674,17 +674,20 @@ public class FundingDistributionScanner {
         String market = "okcoinfutures";
         String targetCoin = "btcquarter";
         String srcCoin = "usd";
-        String type = "5m";
+        String type = "4h";
         // 下跌时间对儿
 //        long since = 1517724000;    // 2018/2/4 14:0:0
 //        long end = 1517847924;      // 2018/2/6 0:25:24
         // 上涨时间对儿
 //        long since = 1517626800;    // 2018/2/3 11:0:0
 //        long end = 1517670000;      // 2018/2/3 23:0:0
-        long since = 0;
+        long since = 1514563200;
         long end = 0;
-        String o = "bull_short_list_chart.html";
-        scanner.genBullVsShortChart(market, targetCoin, srcCoin, type, since, end, o);
+//        String o = "bull_short_list_chart.html";
+        String o = "btc_usdt.html";
+        // scanner.genBullVsShortChart(market, targetCoin, srcCoin, type, since, end, o);
+
+        scanner.genBtcFundingChart(market, targetCoin, srcCoin, type, since, end, o);
 
     }
 }
