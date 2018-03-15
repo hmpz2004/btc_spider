@@ -154,21 +154,16 @@ public class Main {
 
     private static void callScanVolume(CommandLine cmd) {
 
-        //<<>>
-        if (true) {
-//        if (cmd.hasOption("i") &&
-//                cmd.hasOption("t")) {
-            //<<>>
-//            String inputFileName = cmd.getOptionValue("i");
-//            String type = cmd.getOptionValue("t");
-            String inputFileName = "";
-            String type = "2h";
+        if (cmd.hasOption("i") &&
+                cmd.hasOption("t")) {
+            String inputFileName = cmd.getOptionValue("i");
+            String type = cmd.getOptionValue("t");
 
             long since = 0;
-            //<<>>
-//            if (cmd.hasOption("s")) {
-//                since = Long.valueOf(cmd.getOptionValue("s"));
-//            }
+
+            if (cmd.hasOption("s")) {
+                since = Long.valueOf(cmd.getOptionValue("s"));
+            }
 
             Map<String, List<KEntity>> strongMap = new HashMap<>();
             Map<String, List<KEntity>> weakMap = new HashMap<>();
@@ -186,10 +181,11 @@ public class Main {
             Map<String, Set<String>> weakCoinSymbolSetMap = new HashMap<>();
 
             // 交易所过滤
-            String pre = "^(okex|huobipro|gate|binance)";
+            // String pre = "^(okex|huobipro|gate|binance)";
+            String pre = "^(huobipro|gate|binance)";    // 先暂时去掉okex(深度差)
             String mid = ".*";
             // 交易对过滤
-            String suf = "(btc|eth|usdt|qc|bnb|bch)$";
+            String suf = "(btc|eth|usdt|qc)$";  // 先暂时去掉bnb、bch
 
             String regexTotal = pre + mid + suf;
             Pattern patternTotal = Pattern.compile(regexTotal);
@@ -216,7 +212,7 @@ public class Main {
                     continue;
                 }
 
-//                LogUtils.logDebugLine("symbol : " + symbol);
+                LogUtils.logDebugLine("symbol : " + symbol);
 
                 List<KEntity> list = AicoinDataHelper.requestKLineBySymbol(symbol, type, since);
 
@@ -573,6 +569,7 @@ public class Main {
         LogUtils.logDebugLine("-f scan_resistance_support -m yunbi -t 5m");
         LogUtils.logDebugLine("-f increase_drop -m yunbi -o yunbi_ins.html");
         LogUtils.logDebugLine("-f bull_short -m okex -tc ethquarter -sc usd -t 15m -d 10 -o eth_usdt.html");
+        LogUtils.logDebugLine("-f volume_scan -i symbols.txt -t 2h");
         LogUtils.logDebugLine("target coin src coin : ");
         LogUtils.logDebugLine("okexethquarterusd okex eth 季度");
         LogUtils.logDebugLine("okexethweekusd okex eth 当周");
