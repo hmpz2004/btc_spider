@@ -16,6 +16,8 @@ public class AicoinDataHelper {
 
     private static boolean AICOIN_DEBUG = false;
 
+    public static String INDEX_URL = "https://www.aicoin.net.cn";
+
     // https://www.aicoin.net.cn/chart/api/data/period?symbol=huobiproeosusdt&step=180
     // step 表示请求的周期的秒数
     public static String URL_KLINE = "https://www.aicoin.net.cn/chart/api/data/period";
@@ -115,7 +117,18 @@ public class AicoinDataHelper {
             }
             String httpUrlParamString = upb.formatUrlParamString();
 
-            return HttpRequest.sendGet(URL_KLINE, httpUrlParamString);
+            Map<String, String> propMap = new HashMap<>();
+            propMap.put("Accept", "*/*");
+            propMap.put("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8");
+            // propMap.put("Accept-Encoding", "gzip, deflate, br");
+            propMap.put("Connection", "keep-alive");
+            propMap.put("Host", "www.aicoin.net.cn");
+            propMap.put("Referer", "https://www.aicoin.net.cn/chart/5C79AC2D");
+            propMap.put("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36");
+            // propMap.put("", "");
+
+            // return HttpRequest.sendGetWithCookie(URL_KLINE, httpUrlParamString, INDEX_URL, null);
+            return HttpRequest.sendGetWithCookie(URL_KLINE, httpUrlParamString, propMap, INDEX_URL, null);
 
         } catch (Exception e) {
             LogUtils.logError(e);
@@ -184,6 +197,9 @@ public class AicoinDataHelper {
         List<KEntity> list = null;
 
         String res = httpQueryKData(market, targetCoin, srcCoin, periodType, 0);
+        if (AICOIN_DEBUG) {
+            LogUtils.logDebugLine(res);
+        }
         if (res != null && !res.equals("")) {
             list = parseKlineToList(res, since);
         }
