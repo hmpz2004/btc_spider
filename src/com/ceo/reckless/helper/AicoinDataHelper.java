@@ -128,7 +128,8 @@ public class AicoinDataHelper {
             // propMap.put("", "");
 
             // return HttpRequest.sendGetWithCookie(URL_KLINE, httpUrlParamString, INDEX_URL, null);
-            return HttpRequest.sendGetWithCookie(URL_KLINE, httpUrlParamString, propMap, INDEX_URL, null);
+//            return HttpRequest.sendGetWithCookie(URL_KLINE, httpUrlParamString, propMap, INDEX_URL, null);
+            return HttpRequest.sendGet(URL_KLINE, httpUrlParamString, propMap);
 
         } catch (Exception e) {
             LogUtils.logError(e);

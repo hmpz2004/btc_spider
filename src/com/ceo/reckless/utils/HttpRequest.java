@@ -79,6 +79,84 @@ public class HttpRequest {
         return result;
     }
 
+    /**
+     * 向指定URL发送GET方法的请求
+     *
+     * @param url
+     *            发送请求的URL
+     * @param param
+     *            请求参数，请求参数应该是 name1=value1&name2=value2 的形式。
+     * @param propMap
+     *            用于发送自定义的prop参数,map中的内容会通过setRequestProperty传入connection对象
+     * @return URL 所代表远程资源的响应结果
+     */
+    public static String sendGet(String url, String param, Map<String, String> propMap) {
+        String result = "";
+        BufferedReader in = null;
+        try {
+            String urlNameString = url;
+            if (param != null && !param.equals("")) {
+                urlNameString += "?" + param;
+            }
+            URL realUrl = new URL(urlNameString);
+
+            // 打开和URL之间的连接
+            URLConnection connection = realUrl.openConnection();
+
+            if (propMap == null || propMap.size() == 0) {
+                LogUtils.logDebugLine("property map empty");
+                return result;
+            }
+
+            // 设置通用的请求属性
+            for (Map.Entry<String, String> itemEntry : propMap.entrySet()) {
+                String key = itemEntry.getKey();
+                String value = itemEntry.getValue();
+                connection.setRequestProperty(key, value);
+            }
+
+            // 建立实际的连接
+            connection.connect();
+            // 获取所有响应头字段
+            Map<String, List<String>> map = connection.getHeaderFields();
+            // 处理cookie
+            if (map.containsKey("Set-Cookie")) {
+                List cookieValueList = map.get("Set-Cookie");
+                for (Object item : cookieValueList) {
+                    String itemString = (String) item;
+                    String[] array = itemString.split(" path=");    // 根据cookie格式把name=value后面的expire啥的都切掉
+                    if (array != null && array.length > 1) {
+                        cookieContent += array[0];
+                    }
+                }
+            }
+
+            return IoStreamUtils.readUTF8(connection.getInputStream());
+
+            // 定义 BufferedReader输入流来读取URL的响应
+//            in = new BufferedReader(new InputStreamReader(
+//                    connection.getInputStream()));
+//            String line;
+//            while ((line = in.readLine()) != null) {
+//                result += line;
+//            }
+        } catch (Exception e) {
+            System.out.println("发送GET请求出现异常！" + e);
+            e.printStackTrace();
+        }
+        // 使用finally块来关闭输入流
+        finally {
+            try {
+                if (in != null) {
+                    in.close();
+                }
+            } catch (Exception e2) {
+                e2.printStackTrace();
+            }
+        }
+        return result;
+    }
+
     public static String sendGetWithCookie(String url, String param, String cookieUrl, String cookieParam) {
         String result = "";
         BufferedReader in = null;
