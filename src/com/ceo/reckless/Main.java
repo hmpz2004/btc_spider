@@ -182,10 +182,12 @@ public class Main {
 
             // 交易所过滤
             // String pre = "^(okex|huobipro|gate|binance)";
-            String pre = "^(huobipro|gate|binance)";    // 先暂时去掉okex(深度差)
+            String pre = "^(huobipro|binance|bitfinex)";    // 先暂时去掉okex(深度差)、gate(交易量小)
+//            String pre = "^(huobipro)";    // 先暂时去掉okex(深度差)、gate(交易量小)
             String mid = ".*";
             // 交易对过滤
-            String suf = "(btc|eth|usdt|qc)$";  // 先暂时去掉bnb、bch
+            String suf = "(btc|eth|usdt)$";  // 先暂时去掉bnb、bch、qc
+//            String suf = "(btc|eth|usdt)$";  // 先暂时去掉bnb、bch、qc
 
             String regexTotal = pre + mid + suf;
             Pattern patternTotal = Pattern.compile(regexTotal);
@@ -263,9 +265,22 @@ public class Main {
                 }
             }
 
+            // 结果排序,按照币种对应的symbol多少降序排列
+            Comparator comparator = new Comparator<Map.Entry<String, Set<String>>> () {
+                @Override
+                public int compare(Map.Entry<String, Set<String>> o1, Map.Entry<String, Set<String>> o2) {
+                    int size1 = o1.getValue().size();
+                    int size2 = o2.getValue().size();
+                    return size1 - size2;
+                }
+            };
+            List<Map.Entry<String, Set<String>>> strongOrderList = new ArrayList<>();
+            strongOrderList.addAll(strongCoinSymbolSetMap.entrySet());
+            Collections.sort(strongOrderList, comparator);
+
             LogUtils.logDebugLine("==============================");
             LogUtils.logDebugLine("strong filtered coin\n");
-            for (Map.Entry<String, Set<String>> itemEntry : strongCoinSymbolSetMap.entrySet()) {
+            for (Map.Entry<String, Set<String>> itemEntry : strongOrderList) {
                 String coin = itemEntry.getKey();
                 if (coin == null) {
                     continue;
@@ -285,9 +300,13 @@ public class Main {
 //                LogUtils.logDebugLine(itemEntry.getKey());
 //            }
 
+            List<Map.Entry<String, Set<String>>> weakOrderList = new ArrayList<>();
+            weakOrderList.addAll(weakCoinSymbolSetMap.entrySet());
+            Collections.sort(weakOrderList, comparator);
+
             LogUtils.logDebugLine("==============================");
             LogUtils.logDebugLine("weak filtered coin\n");
-            for (Map.Entry<String, Set<String>> itemEntry : weakCoinSymbolSetMap.entrySet()) {
+            for (Map.Entry<String, Set<String>> itemEntry : weakOrderList) {
                 String coin = itemEntry.getKey();
                 if (coin == null) {
                     continue;
