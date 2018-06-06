@@ -182,7 +182,7 @@ public class Main {
 
             // 交易所过滤
             // String pre = "^(okex|huobipro|gate|binance)";
-            String pre = "^(huobipro|binance|bitfinex)";    // 先暂时去掉okex(深度差)、gate(交易量小)
+            String pre = "^(huobipro|binance|bitfinex|bittrex|gate)";    // 先暂时去掉okex(深度差)
 //            String pre = "^(huobipro)";    // 先暂时去掉okex(深度差)、gate(交易量小)
             String mid = ".*";
             // 交易对过滤
@@ -201,6 +201,7 @@ public class Main {
             String fileContentString = new String(fileContent);
             String[] lineArray = fileContentString.split("\n");
             for (String itemLine : lineArray) {
+
                 String symbol = itemLine;
                 boolean status = false;
 
@@ -263,6 +264,12 @@ public class Main {
                         weakCoinSymbolSetMap.put(coin, weakSymbolSet);
                     }
                 }
+
+                // aicoin可能有反爬虫策略,增加一个sleep
+                try {
+                    Thread.sleep(AicoinDataHelper.AICOIN_HTTP_QUERY_INTERVAL);
+                } catch (Exception e) {
+                }
             }
 
             // 结果排序,按照币种对应的symbol多少降序排列
@@ -271,7 +278,7 @@ public class Main {
                 public int compare(Map.Entry<String, Set<String>> o1, Map.Entry<String, Set<String>> o2) {
                     int size1 = o1.getValue().size();
                     int size2 = o2.getValue().size();
-                    return size1 - size2;
+                    return size2 - size1;   // 降序
                 }
             };
             List<Map.Entry<String, Set<String>>> strongOrderList = new ArrayList<>();

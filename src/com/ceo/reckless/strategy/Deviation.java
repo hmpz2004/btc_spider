@@ -45,17 +45,27 @@ public class Deviation {
     }
 
     /**
-     *
      * @param typeLineBar
      * @param typeTopBottom
      * @param keList
      * @param de 发生背离的时间距离当前时间的时间戳的差
+     * @param isLastPointDeviation true : 当前走势的最后一个点也算进去 false : 查看已经出现拐点的背离情况
      * @return
      */
-    public static boolean isDeviation(int typeLineBar, int typeTopBottom, List<KEntity> keList, DeviationEntity de, boolean isPreDeviation) {
+    public static boolean isDeviation(int typeLineBar, int typeTopBottom, List<KEntity> keList, DeviationEntity de, boolean isLastPointDeviation) {
 
         if (de == null) {
             de = new DeviationEntity();
+        }
+
+        // K线数据存入map
+        Map<Long, KEntity> timeKMap = new HashMap<>();
+        for (KEntity item : keList) {
+            // timestamp要先转为毫秒级别
+            if (item.timestamp < 10000000000L) {
+                item.timestamp *= 1000L;
+            }
+            timeKMap.put(item.timestamp, item);
         }
 
         MACDEntity me = TalibHelper.genMacd(keList);
@@ -75,12 +85,6 @@ public class Deviation {
 
                     LogUtils.logDebugLine("time " + time + " dif " + dif + " dea " + dea + " bar " + bar);
                 }
-            }
-
-            // K线数据存入map
-            Map<Long, KEntity> timeKMap = new HashMap<>();
-            for (KEntity item : keList) {
-                timeKMap.put(item.timestamp, item);
             }
 
             // 遍历macd
@@ -145,7 +149,7 @@ public class Deviation {
                     }
                 }
                 // 判断top、bottom list里是否要加入最后一个数据
-                if (isPreDeviation && i == me.size - 1) {
+                if (isLastPointDeviation && i == me.size - 1) {
                     if (typeLineBar == TYPE_LINE) {
                         beforeTargetValue = me.deaArray[i - 1];
                     } else if (typeLineBar == TYPE_BAR) {

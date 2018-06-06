@@ -26,6 +26,9 @@ public class AicoinDataHelper {
     private static final int BASE_PERIOD_INTERNAL_HOUR = 60 * BASE_PERIOD_INTERNAL_MINUTE;
     private static final int BASE_PERIOD_INTERNAL_DAY = 24 * BASE_PERIOD_INTERNAL_HOUR;
 
+    // aicoin可能有反爬虫策略,两次请求之间需要sleep一定时间  10s、2s、1s、500ms是可以的 300ms不太稳 100ms不太稳
+    public static final long AICOIN_HTTP_QUERY_INTERVAL = 500L;
+
     public static int TYPE_LEVEL_1_MIN = BASE_PERIOD_INTERNAL_MINUTE;// 1分
     public static int TYPE_LEVEL_3_MIN = 3 * BASE_PERIOD_INTERNAL_MINUTE;// 3分
     public static int TYPE_LEVEL_5_MIN = 5 * BASE_PERIOD_INTERNAL_MINUTE;// 5分
