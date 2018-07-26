@@ -68,6 +68,7 @@ public class KinkScanner {
     /**
      * 标记顶分型底分型的顶和底
      * 输入:已经合并够的K list
+     * 返回:去除多余顶底的标记数组
      */
     public static int[] markTopBottomShape(List<KEntity> shrinkedKEntityList) {
 
@@ -167,7 +168,13 @@ public class KinkScanner {
         return markTypeArray;
     }
 
-    public static void processMarkTypeArray(List<KEntity> shrinkedKEntityList, int[] markTypeArray) {
+    /**
+     * 返回顶底相连的笔list
+     * @param shrinkedKEntityList
+     * @param markTypeArray
+     * @return
+     */
+    public static List<LinkEntity> processMarkTypeArray(List<KEntity> shrinkedKEntityList, int[] markTypeArray) {
         // 根据markTypeArray的顶底结果,尝试link(目前只有顶底相连,没有顶顶或底底了)
         List<LinkEntity> linkList = new ArrayList<>();
         int lastTopIdx = TYPE_EMPTY;
@@ -291,20 +298,13 @@ public class KinkScanner {
         linkList.add(lastLinkEntity);
 
         debugPrintLinkList(linkList);
+
+        return linkList;
     }
 
     public static void debugPrintLinkList(List<LinkEntity> list) {
         for (LinkEntity item : list) {
-            double start = 0.0;
-            double end = 0.0;
-            if (item.type == LinkEntity.TYPE_UP) {
-                start = item.first.low;
-                end = item.second.high;
-            } else if (item.type == LinkEntity.TYPE_DOWN) {
-                start = item.first.high;
-                end = item.second.low;
-            }
-            LogUtils.logDebug(start + "-" + end + " ");
+            LogUtils.logDebug(item.toOutputString() + " ");
         }
     }
 
