@@ -7,6 +7,7 @@ import com.ceo.reckless.helper.AicoinDataHelper;
 import com.ceo.reckless.helper.SosobtcDataHelper;
 import com.ceo.reckless.utils.FileUtils;
 import com.ceo.reckless.utils.LogUtils;
+import com.sun.javafx.scene.control.behavior.SplitMenuButtonBehavior;
 import com.sun.xml.internal.messaging.saaj.packaging.mime.internet.SharedInputStream;
 import com.sun.xml.internal.ws.util.pipe.StandaloneTubeAssembler;
 
@@ -15,6 +16,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class KinkScanner {
+
+    /**
+     * 笔   link
+     * 线段 line_segment
+     */
 
     static int MIN_DISTANCE = 4;
 
@@ -72,10 +78,16 @@ public class KinkScanner {
      */
     public static int[] markTopBottomShape(List<KEntity> shrinkedKEntityList) {
 
+        // true输出合并后的顶底
+        boolean debugChangeShape = false;
+        // true输出最原始的顶底
+        boolean debugOrigTopBtm = false;
+
         int[] markTypeArray = new int[shrinkedKEntityList.size()];
 
         int lastTopIdx = -1;
         int lastBtmIdx = -1;
+        int curTopOrBtm = -1;   // 记录最后一个顶or底(用于处理末尾情况)
 
         KEntity keTemp = new KEntity();
         KEntity keLast = new KEntity();
@@ -92,9 +104,12 @@ public class KinkScanner {
             if ((keItem.high > keLast.high && keItem.high > keNext.high) &&
                     (keItem.low > keLast.low && keItem.low > keNext.low)) {
 
-                // 修改形状为上丁字形
-//                keItem.open = keItem.high;
-//                keItem.close = keItem.high;
+                curTopOrBtm = curIdx;
+
+                if (debugOrigTopBtm) {
+                    // 碰到顶就处理
+                    changeToUpShape(shrinkedKEntityList.get(curIdx));
+                }
 
                 if (lastTopIdx == TYPE_EMPTY) {
                     // 当前没有临时top
@@ -114,7 +129,11 @@ public class KinkScanner {
 
                 // 碰到顶,确认上个底
                 if (lastBtmIdx != TYPE_EMPTY) {
+                    // 需要确认当前顶不能低于上个底,低于就特殊处理
                     markTypeArray[lastBtmIdx] = TYPE_BTM;
+                    if (debugChangeShape) {
+                        changeToDownShape(shrinkedKEntityList.get(lastBtmIdx));
+                    }
                     lastBtmIdx = TYPE_EMPTY;
                 }
 
@@ -126,6 +145,13 @@ public class KinkScanner {
             // 低点最低 高点最低
             if ((keItem.low < keLast.low && keItem.low < keNext.low) &&
                     (keItem.high < keLast.high && keItem.high < keNext.high)) {
+
+                curTopOrBtm = curIdx;
+
+                if (debugOrigTopBtm) {
+                    // 碰到底就处理
+                    changeToDownShape(shrinkedKEntityList.get(curIdx));
+                }
 
                 // 修改形状为下丁字形
 //                keItem.open = keItem.low;
@@ -147,8 +173,12 @@ public class KinkScanner {
                     }
                 }
 
+                // 碰到底,确认上个顶
                 if (lastTopIdx != TYPE_EMPTY) {
                     markTypeArray[lastTopIdx] = TYPE_TOP;
+                    if (debugChangeShape) {
+                        changeToUpShape(shrinkedKEntityList.get(lastTopIdx));
+                    }
                     lastTopIdx = TYPE_EMPTY;
                 }
 
@@ -158,24 +188,44 @@ public class KinkScanner {
         }
 
         // 循环结束,把最后一个临时顶和临时底都算进去
-        if (lastBtmIdx != TYPE_EMPTY) {
-            markTypeArray[lastBtmIdx] = TYPE_BTM;
-        }
-        if (lastTopIdx != TYPE_EMPTY) {
-            markTypeArray[lastTopIdx] = TYPE_TOP;
+//        if (lastBtmIdx != TYPE_EMPTY) {
+//            markTypeArray[lastBtmIdx] = TYPE_BTM;
+//        }
+//        if (lastTopIdx != TYPE_EMPTY) {
+//            markTypeArray[lastTopIdx] = TYPE_TOP;
+//        }
+        // 最后一个加入正式点的是顶,则待处理的是一个末尾的底
+        // 最后一个加入正式点的是底,则待处理的是一个末尾的顶
+        markTypeArray[curTopOrBtm] = lastTopIdx > lastBtmIdx ? TYPE_TOP : TYPE_BTM;
+        if (debugChangeShape) {
+            if (markTypeArray[curTopOrBtm] == TYPE_TOP) {
+                changeToUpShape(shrinkedKEntityList.get(curTopOrBtm));
+            } else {
+                changeToDownShape(shrinkedKEntityList.get(curTopOrBtm));
+            }
         }
 
         return markTypeArray;
     }
 
+    public static void changeToUpShape(KEntity ke) {
+        ke.open = ke.high;
+        ke.close = ke.high;
+    }
+
+    public static void changeToDownShape(KEntity ke) {
+        ke.open = ke.low;
+        ke.close = ke.low;
+    }
+
     /**
+     * 根据markTypeArray的顶底结果,尝试link(目前只有顶底相连,没有顶顶或底底了)
      * 返回顶底相连的笔list
      * @param shrinkedKEntityList
      * @param markTypeArray
      * @return
      */
     public static List<LinkEntity> processMarkTypeArray(List<KEntity> shrinkedKEntityList, int[] markTypeArray) {
-        // 根据markTypeArray的顶底结果,尝试link(目前只有顶底相连,没有顶顶或底底了)
         List<LinkEntity> linkList = new ArrayList<>();
         int lastTopIdx = TYPE_EMPTY;
         int lastBtmIdx = TYPE_EMPTY;
@@ -192,8 +242,10 @@ public class KinkScanner {
                 // 碰到一个顶
                 if (lastBtmIdx != TYPE_EMPTY) {
                     // 前面有个底
-                    if (curIdx - lastBtmIdx >= MIN_DISTANCE) {
-                        // 当前顶与前底能link
+                    KEntity curEntity = shrinkedKEntityList.get(curIdx);
+                    KEntity lastBtmEntity = shrinkedKEntityList.get(lastBtmIdx);
+                    if (curIdx - lastBtmIdx >= MIN_DISTANCE && curEntity.high > lastBtmEntity.low) {
+                        // 当前顶与前底能link(距离符合并且高低符合)
                         needOperLink = true;
                         lastTopIdx = curIdx;
                     } else {
@@ -224,8 +276,10 @@ public class KinkScanner {
                 // 碰到一个底
                 if (lastTopIdx != TYPE_EMPTY) {
                     // 前面有个顶
-                    if (curIdx - lastTopIdx >= MIN_DISTANCE) {
-                        // 当前底与前顶能link
+                    KEntity curEntity = shrinkedKEntityList.get(curIdx);
+                    KEntity lastTopEntity = shrinkedKEntityList.get(lastTopIdx);
+                    if (curIdx - lastTopIdx >= MIN_DISTANCE && curEntity.low < lastTopEntity.high) {
+                        // 当前底与前顶能link(距离符合并且高低符合)
                         needOperLink = true;
                         lastBtmIdx = curIdx;
                     } else {
@@ -252,11 +306,6 @@ public class KinkScanner {
                     // 前面无顶
                     lastBtmIdx = curIdx;
                 }
-
-                // 当前有待link的顶,走一下link处理
-//                if (lastTopIdx != TYPE_EMPTY) {
-//                    needOperLink = true;
-//                }
             }
 
             if (needOperLink) {
@@ -302,7 +351,62 @@ public class KinkScanner {
         return linkList;
     }
 
+    /**
+     * 根据笔的形状修改k图的shape
+     * @param shrinkList
+     * @param linkList
+     * @return
+     */
+    public static List<KEntity> changeOrigKShape(List<KEntity> shrinkList, List<LinkEntity> linkList) {
+
+        if (linkList == null || linkList.size() == 0) {
+            return null;
+        }
+
+        int idxLink = 0;
+        LinkEntity curLink = linkList.get(0);
+        for (KEntity itemEntity : shrinkList) {
+            if (itemEntity.timestamp == curLink.first.timestamp) {
+                // 位于笔的开始
+                if (curLink.type == LinkEntity.TYPE_UP) {
+                    // 上升一笔
+                    // 修改形状为下丁字形
+                    itemEntity.open = itemEntity.low;
+                    itemEntity.close = itemEntity.low;
+                } else if (curLink.type == LinkEntity.TYPE_DOWN) {
+                    // 下降一笔
+                    // 修改形状为上丁字形
+                    itemEntity.open = itemEntity.high;
+                    itemEntity.close = itemEntity.high;
+                }
+            } else if (itemEntity.timestamp == curLink.second.timestamp) {
+                // 位于笔的结束
+                if (curLink.type == LinkEntity.TYPE_UP) {
+                    // 上升一笔
+                    // 修改形状为上丁字形
+                    itemEntity.open = itemEntity.high;
+                    itemEntity.close = itemEntity.high;
+                } else if (curLink.type == LinkEntity.TYPE_DOWN) {
+                    // 下降一笔
+                    // 修改形状为下丁字形
+                    itemEntity.open = itemEntity.low;
+                    itemEntity.close = itemEntity.low;
+                }
+
+                // 当前link头尾都change结束,换下个link
+                idxLink++;
+                if (idxLink == linkList.size()) {
+                    break;
+                }
+                curLink = linkList.get(idxLink);
+            }
+        }
+
+        return shrinkList;
+    }
+
     public static void debugPrintLinkList(List<LinkEntity> list) {
+        LogUtils.logDebugLine("print each link");
         for (LinkEntity item : list) {
             LogUtils.logDebug(item.toOutputString() + " ");
         }
@@ -438,7 +542,7 @@ public class KinkScanner {
 
         try {
 
-            test();
+//            test();
 
 //            String jsonResult = SosobtcDataHelper.httpQueryKData("huobi", "btc", SosobtcDataHelper.TYPE_LEVEL_1_HOUR, 0);
 //            List<KEntity> list = SosobtcDataHelper.parseKlineToList(jsonResult);
@@ -454,11 +558,11 @@ public class KinkScanner {
 //            String srcCoin = "usd";
 //            String periodType = "1h";
 
-            /*
+
             String market = "okcoinfutures";
             String targetCoin = "btcquarter";
             String srcCoin = "usd";
-            String periodType = "30m";
+            String periodType = "4h";
             long since = 0;
             List<KEntity> list = AicoinDataHelper.requestKLine(market, targetCoin, srcCoin, periodType, 0);
             List<KEntity> slist = shrinkKLine(list);
@@ -466,8 +570,25 @@ public class KinkScanner {
             LogUtils.logDebugLine("list size " + list.size() + " slist size " + slist.size());
 
             KLineChart.outputKLineShrinkChart("im title", list, slist, "btcquarter_shrink_kline_chart.html");
-            */
 
+            // 先只输出一部分k的处理
+            List<KEntity> oList = new ArrayList<>();
+            int begin = 101;
+            int end = 200;
+            for (int i = begin; i < slist.size() && i < end; i++) {
+                oList.add(slist.get(i));
+            }
+
+            slist = oList;
+
+            // 测试笔的划分
+            int[] markArray = markTopBottomShape(slist);
+            //<<>>
+            List<LinkEntity> linkList = processMarkTypeArray(slist, markArray);
+            slist = changeOrigKShape(slist, linkList);
+
+
+            KLineChart.outputKLineChart("title ttt", slist, "btcquarter_change_shape_kline_chart.html");
 
         } catch (Exception e) {
             LogUtils.logError(e);
