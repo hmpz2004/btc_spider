@@ -319,9 +319,11 @@ public class KinkScanner {
 
                 KEntity first = null;
                 KEntity second = null;
-                first = lastTopIdx > lastBtmIdx ? btmEntity : topEntity;
-                second = lastTopIdx > lastBtmIdx ? topEntity : btmEntity;
+                first = lastTopIdx > lastBtmIdx ? btmEntity : topEntity;    // 上升的link top在后,btm在前
+                second = lastTopIdx > lastBtmIdx ? topEntity : btmEntity;   // 下降的link top在前,btm在后
+                int linkType = lastTopIdx > lastBtmIdx ? LinkEntity.TYPE_UP : LinkEntity.TYPE_DOWN; // top在后方向向上,top在前方向向下
                 tmpLinkEntity = new LinkEntity(first, second);
+                tmpLinkEntity.type = linkType;
 
                 if (lastLinkEntity == null) {
                     // 没有待确认的link
@@ -366,6 +368,10 @@ public class KinkScanner {
         int idxLink = 0;
         LinkEntity curLink = linkList.get(0);
         for (KEntity itemEntity : shrinkList) {
+            if (itemEntity.low == 7.2605) {
+                int a = 0;
+                int b = a + 1;
+            }
             if (itemEntity.timestamp == curLink.first.timestamp) {
                 // 位于笔的开始
                 if (curLink.type == LinkEntity.TYPE_UP) {
@@ -559,10 +565,17 @@ public class KinkScanner {
 //            String periodType = "1h";
 
 
-            String market = "okcoinfutures";
-            String targetCoin = "btcquarter";
+//            String market = "okcoinfutures";
+//            String targetCoin = "btcquarter";
+            // xbtusd
+//            String market = "bitmex";
+//            String targetCoin = "xbt";
+//            String srcCoin = "usd";
+            // bitfinexeosusd
+            String market = "bitfinex";
+            String targetCoin = "eos";
             String srcCoin = "usd";
-            String periodType = "4h";
+            String periodType = "30m";
             long since = 0;
             List<KEntity> list = AicoinDataHelper.requestKLine(market, targetCoin, srcCoin, periodType, 0);
             List<KEntity> slist = shrinkKLine(list);
@@ -573,8 +586,10 @@ public class KinkScanner {
 
             // 先只输出一部分k的处理
             List<KEntity> oList = new ArrayList<>();
-            int begin = 101;
-            int end = 200;
+//            int begin = slist.size() - 200;
+            int begin = 0;
+//            int end = slist.size() - 1;
+            int end = slist.size() - 1;
             for (int i = begin; i < slist.size() && i < end; i++) {
                 oList.add(slist.get(i));
             }
@@ -587,8 +602,8 @@ public class KinkScanner {
             List<LinkEntity> linkList = processMarkTypeArray(slist, markArray);
             slist = changeOrigKShape(slist, linkList);
 
-
-            KLineChart.outputKLineChart("title ttt", slist, "btcquarter_change_shape_kline_chart.html");
+            // KLineChart.outputKLineChart("title ttt", slist, "btcquarter_change_shape_kline_chart.html");
+            KLineChart.outputKLineChart("title ttt", slist, "bitmexxbtusd_change_shape_kline_chart.html");
 
         } catch (Exception e) {
             LogUtils.logError(e);

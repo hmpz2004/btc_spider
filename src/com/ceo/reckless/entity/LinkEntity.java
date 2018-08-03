@@ -1,6 +1,6 @@
 package com.ceo.reckless.entity;
 
-import com.ceo.reckless.utils.LogUtils;
+import com.ceo.reckless.utils.TimeUtils;
 
 public class LinkEntity {
 
@@ -16,11 +16,12 @@ public class LinkEntity {
     public LinkEntity(KEntity a, KEntity b) {
         first = a;
         second = b;
-        if (first.high > second.high) {
-            type = TYPE_DOWN;
-        } else if (first.low < second.low) {
-            type = TYPE_UP;
-        }
+        // 单纯内部高低判断容易出错,link的上升or下降方向由外部判断
+//        if (first.high > second.high) {
+//            type = TYPE_DOWN;
+//        } else if (first.low < second.low) {
+//            type = TYPE_UP;
+//        }
     }
 
     public boolean isSameStart(LinkEntity tgt) {
@@ -30,14 +31,18 @@ public class LinkEntity {
     public String toOutputString() {
         double start = 0.0;
         double end = 0.0;
+        long startTime = first.timestamp;;
+        long endTime = second.timestamp;
         LinkEntity item = this;
         if (item.type == LinkEntity.TYPE_UP) {
             start = item.first.low;
             end = item.second.high;
+
         } else if (item.type == LinkEntity.TYPE_DOWN) {
             start = item.first.high;
             end = item.second.low;
         }
-        return start + "-" + end;
+
+        return TimeUtils.convertTimeFormat1(startTime) + "-" + start + "|" + TimeUtils.convertTimeFormat1(endTime) + "-" + end;
     }
 }

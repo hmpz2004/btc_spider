@@ -68,8 +68,24 @@ public class TimeUtils {
         return msg;
     }
 
+    /**
+     * 兼容毫秒和不带毫秒的两种格式
+     * @param timestamp
+     * @return
+     */
+    public static String convertTimeFormat1(long timestamp) {
+        if (timestamp < 1000000000000L) {
+            timestamp *= 1000L;
+        }
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd_HH:mm:ss");
+        return formatter.format(new Date(timestamp));
+    }
+
     public static void main(String[] args) {
         String desc = calculateTimeDistance(180300);
         LogUtils.logDebugLine(desc);
+
+        String res = convertTimeFormat1(1532930711);
+        LogUtils.logDebugLine(res);
     }
 }
