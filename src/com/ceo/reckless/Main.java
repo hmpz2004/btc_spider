@@ -565,8 +565,7 @@ public class Main {
 
             KLineChart.outputKLineChart("title ttt", slist, "bitmexxbtusd_change_shape_kline_chart.html");
         } else {
-            LogUtils.logDebugLine("kink_link usage:\n -m huobipro -c eos -b usd -t 5m");
-            //<<>>
+            LogUtils.logDebugLine("kink_link usage:\n -m bitfinex -c eos -b usd -t 5m");
         }
     }
 
@@ -660,6 +659,8 @@ public class Main {
         LogUtils.logDebugLine("-f bull_short -m okex -tc ethquarter -sc usd -t 15m -d 10 -o eth_usdt.html");
         LogUtils.logDebugLine("-f volume_scan -i symbols.txt -t 2h");
         LogUtils.logDebugLine("-f scan_deviation_aicoin -i symbols.txt -t 30m");
+        LogUtils.logDebugLine("-f kink_link -m bitmex -c xbt -b usd -t 5m");
+        LogUtils.logDebugLine("-f kink_link -m bitfinex -c eos -b usd -t 5m");
         LogUtils.logDebugLine("target coin src coin : ");
         LogUtils.logDebugLine("okexethquarterusd okex eth 季度");
         LogUtils.logDebugLine("okexethweekusd okex eth 当周");
