@@ -4,6 +4,7 @@ import com.ceo.reckless.chart.KLineChart;
 import com.ceo.reckless.entity.KEntity;
 import com.ceo.reckless.entity.LinkEntity;
 import com.ceo.reckless.helper.AicoinDataHelper;
+import com.ceo.reckless.helper.HexunDataHelper;
 import com.ceo.reckless.helper.SosobtcDataHelper;
 import com.ceo.reckless.utils.FileUtils;
 import com.ceo.reckless.utils.LogUtils;
@@ -414,7 +415,7 @@ public class KinkScanner {
     public static void debugPrintLinkList(List<LinkEntity> list) {
         LogUtils.logDebugLine("print each link");
         for (LinkEntity item : list) {
-            LogUtils.logDebug(item.toOutputString() + " ");
+            LogUtils.logDebugLine(item.toOutputString());
         }
     }
 
@@ -544,8 +545,7 @@ public class KinkScanner {
 //        testMarkTopBtm();
     }
 
-    public static void main(String[] args) {
-
+    public static void testBtc() {
         try {
 
 //            test();
@@ -575,7 +575,13 @@ public class KinkScanner {
             String market = "bitfinex";
             String targetCoin = "eos";
             String srcCoin = "usd";
-            String periodType = "30m";
+
+            // bitfinexethbtc
+//            String market = "bitfinex";
+//            String targetCoin = "eth";
+//            String srcCoin = "btc";
+
+            String periodType = "5m";
             long since = 0;
             List<KEntity> list = AicoinDataHelper.requestKLine(market, targetCoin, srcCoin, periodType, 0);
             List<KEntity> slist = shrinkKLine(list);
@@ -598,7 +604,6 @@ public class KinkScanner {
 
             // 测试笔的划分
             int[] markArray = markTopBottomShape(slist);
-            //<<>>
             List<LinkEntity> linkList = processMarkTypeArray(slist, markArray);
             slist = changeOrigKShape(slist, linkList);
 
@@ -608,5 +613,47 @@ public class KinkScanner {
         } catch (Exception e) {
             LogUtils.logError(e);
         }
+    }
+
+    public static void testHexun() {
+        try {
+            String codeName = "SHFE3RB";
+            String codeNum = "1810";
+            String periodType = "30m";
+            String startDateString = "20180708000000";
+            List<KEntity> list = HexunDataHelper.requestKLine(codeName, codeNum, periodType, startDateString);
+
+            List<KEntity> slist = shrinkKLine(list);
+
+            LogUtils.logDebugLine("list size " + list.size() + " slist size " + slist.size());
+
+            // 先只输出一部分k的处理
+            List<KEntity> oList = new ArrayList<>();
+//            int begin = slist.size() - 200;
+            int begin = 0;
+//            int end = slist.size() - 1;
+            int end = slist.size() - 1;
+            for (int i = begin; i < slist.size() && i < end; i++) {
+                oList.add(slist.get(i));
+            }
+
+            slist = oList;
+
+            // 测试笔的划分
+            int[] markArray = markTopBottomShape(slist);
+            List<LinkEntity> linkList = processMarkTypeArray(slist, markArray);
+            slist = changeOrigKShape(slist, linkList);
+
+            KLineChart.outputKLineChart("title ttt", slist, "hexun_qihuo_change_shape_kline_chart.html");
+        } catch (Exception e) {
+            LogUtils.logError(e);
+        }
+    }
+
+    public static void main(String[] args) {
+
+        testBtc();
+
+//        testHexun();
     }
 }

@@ -1,6 +1,8 @@
 package com.ceo.reckless;
 
+import com.ceo.reckless.chart.KLineChart;
 import com.ceo.reckless.entity.KEntity;
+import com.ceo.reckless.entity.LinkEntity;
 import com.ceo.reckless.helper.AicoinDataHelper;
 import com.ceo.reckless.helper.SosobtcDataHelper;
 import com.ceo.reckless.utils.FileUtils;
@@ -79,6 +81,32 @@ public class Main {
             }
         } else {
             LogUtils.logDebugLine("scan_resistance_support usage:\n -m yunbi -t 5m");
+        }
+    }
+
+    private static void callScanDeviationAicoin(CommandLine cmd) {
+        if (cmd.hasOption("i")) {
+            String inputFileName = cmd.getOptionValue("i");
+            String type = "";
+            if (cmd.hasOption("t")) {
+                 type = cmd.getOptionValue("t");
+            }
+
+            long since = 0;
+
+            if (cmd.hasOption("s")) {
+                since = Long.valueOf(cmd.getOptionValue("s"));
+            }
+
+            String basePath = System.getProperty("user.dir");
+
+            if (inputFileName == null || inputFileName.equals("")) {
+                inputFileName = "symbols.txt";
+            }
+
+            LogUtils.logDebugLine("processing ...");
+
+            CoinDeviationScanner.scanMultiPeriodDeviation(basePath + File.separator + inputFileName, type);
         }
     }
 
@@ -182,7 +210,7 @@ public class Main {
 
             // 交易所过滤
             // String pre = "^(okex|huobipro|gate|binance)";
-            String pre = "^(huobipro|binance|bitfinex|bittrex|gate)";    // 先暂时去掉okex(深度差)
+            String pre = "^(huobipro|binance|bitfinex|gate)";    // 先暂时去掉okex(深度差)
 //            String pre = "^(huobipro)";    // 先暂时去掉okex(深度差)、gate(交易量小)
             String mid = ".*";
             // 交易对过滤
@@ -292,10 +320,10 @@ public class Main {
                 if (coin == null) {
                     continue;
                 }
-                LogUtils.logDebug(coin + "  \t");
+                LogUtils.logDebug(String.format("%5s", coin) + "  ");
                 Set<String> valueSet = itemEntry.getValue();
                 for (String itemValue : valueSet) {
-                    LogUtils.logDebug(itemValue + "     \t");
+                    LogUtils.logDebug(String.format("%10s", itemValue).toString() + " ");
                 }
                 LogUtils.logDebug("\n");
             }
@@ -318,10 +346,10 @@ public class Main {
                 if (coin == null) {
                     continue;
                 }
-                LogUtils.logDebug(coin + "  \t");
+                LogUtils.logDebug(String.format("%5s", coin) + "  ");
                 Set<String> valueSet = itemEntry.getValue();
                 for (String itemValue : valueSet) {
-                    LogUtils.logDebug(itemValue + "     \t");
+                    LogUtils.logDebug(String.format("%10s", itemValue).toString() + " ");
                 }
                 LogUtils.logDebug("\n");
             }
@@ -513,6 +541,35 @@ public class Main {
         }
     }
 
+    private static void callKinkLink(CommandLine cmd) {
+        if (cmd.hasOption("m") &&
+                cmd.hasOption("c") &&
+                cmd.hasOption("b") &&
+                cmd.hasOption("t")) {
+
+            String market = cmd.getOptionValue("m");
+            String coin = cmd.getOptionValue("c");
+            String buyCoin = cmd.getOptionValue("b");
+            String type = cmd.getOptionValue("t");
+
+            long since = 0;
+            List<KEntity> list = AicoinDataHelper.requestKLine(market, coin, buyCoin, type, since);
+            List<KEntity> slist = KinkScanner.shrinkKLine(list);
+
+            LogUtils.logDebugLine("list size " + list.size() + " slist size " + slist.size());
+
+            // 划分笔
+            int[] markArray = KinkScanner.markTopBottomShape(slist);
+            List<LinkEntity> linkList = KinkScanner.processMarkTypeArray(slist, markArray);
+            slist = KinkScanner.changeOrigKShape(slist, linkList);
+
+            KLineChart.outputKLineChart("title ttt", slist, "bitmexxbtusd_change_shape_kline_chart.html");
+        } else {
+            LogUtils.logDebugLine("kink_link usage:\n -m huobipro -c eos -b usd -t 5m");
+            //<<>>
+        }
+    }
+
     private static void testMain(String args[]) {
 //        MarketWaveMotionScanner.scanDeviation("huobi", "btc", SosobtcDataHelper.TYPE_LEVEL_15_MIN, 0, 0, "dif_k_spot_line.html", null);
 //        MarketWaveMotionScanner.scanResistanceSupport("huobi", "btc", SosobtcDataHelper.TYPE_LEVEL_2_HOUR, 0, null, null);
@@ -533,6 +590,7 @@ public class Main {
         options.addOption("f", "function", true, "Print out VERBOSE information");
         options.addOption("m", "market", true, "");
         options.addOption("c", "coin", true, "");
+        options.addOption("b", "buycoin", true, "");    // 购买的币种
         options.addOption("t", "time type", true, "");
         options.addOption("s", "since", true, "");
         options.addOption("d", "divisor", true, "");
@@ -574,6 +632,11 @@ public class Main {
                     case "volume_scan":
                         callScanVolume(cmd);
                         break;
+                    case "scan_deviation_aicoin":
+                        callScanDeviationAicoin(cmd);
+                        break;
+                    case "kink_link":
+                        callKinkLink(cmd);
                 }
 
             }
@@ -596,6 +659,7 @@ public class Main {
         LogUtils.logDebugLine("-f increase_drop -m yunbi -o yunbi_ins.html");
         LogUtils.logDebugLine("-f bull_short -m okex -tc ethquarter -sc usd -t 15m -d 10 -o eth_usdt.html");
         LogUtils.logDebugLine("-f volume_scan -i symbols.txt -t 2h");
+        LogUtils.logDebugLine("-f scan_deviation_aicoin -i symbols.txt -t 30m");
         LogUtils.logDebugLine("target coin src coin : ");
         LogUtils.logDebugLine("okexethquarterusd okex eth 季度");
         LogUtils.logDebugLine("okexethweekusd okex eth 当周");
