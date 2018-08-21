@@ -1,0 +1,180 @@
+<!DOCTYPE HTML>
+<html>
+<body>
+
+<canvas id="myCanvas" width="2436" height="1125" style="border:1px solid #c3c3c3;">
+
+</canvas>
+
+<script type="text/javascript">
+
+	// 画布宽高
+	var CANVAS_WIDTH = 2436;
+	var CANVAS_HEIGHT = 1125;
+
+	// 坐标系四周流出来的空白坐标宽度(像素)
+	var BASE_PADDING_X = 30;
+	var BASE_PADDING_Y = 30;
+
+	// 文字距离折线的边距
+	var TEXT_POSITION_DEVIATION = 10;
+
+	// 画布背景颜色
+	var CANVAS_BG_COLOR = '#778899'
+	// 划线的颜色
+	// var CANVAS_LINE_COLOR = '#90EE90'
+	var CANVAS_LINE_COLOR = '<<CANVAS_LINE_COLOR_PLACE_HOLDER>>'
+
+	/*
+		转换原始二维数组为画图的坐标二维数组
+		根据图形所占大小，确定x、y坐标的比例，然后计算每个x、y点的具体值
+	*/
+	function convert_raw_data_matrix_to_coordinate_matrix(raw_data_matrix) {
+		// Y轴最大最小值
+		var max_value = 0;
+		var min_value = 0;
+		// X轴最大最小值
+		var begin_time = 0;
+		var end_time = 0;
+
+		var idx = 0;
+		for (idx = 0; idx < raw_data_matrix.length; idx++) {
+			var item_array = raw_data_matrix[idx];
+			var item_time = item_array[0];
+			var item_value = item_array[1];
+
+			// 定位起止时间
+			if (idx == 0) {
+				begin_time = item_time;
+			} else if (idx == raw_data_matrix.length - 1) {
+				end_time = item_time;
+			}
+
+			// 更新最大最小值
+			if (item_value > max_value) {
+				max_value = item_value;
+			}
+			if (min_value == 0 || item_value < min_value) {
+				min_value = item_value;
+			}
+		}
+
+		// 计算换算坐标换算比例(根据canvas画布的宽高属性计算)
+		var c = document.getElementById("myCanvas");
+		var c_height = c.offsetHeight;
+		var c_width = c.offsetWidth
+
+		var scale_y = (c_height - 2 * BASE_PADDING_Y) / (max_value - min_value);
+		var scale_x = (c_width - 2 * BASE_PADDING_X) / (end_time - begin_time);
+
+		// 写入坐标数组
+		var coordinate_matrix = [];
+		coordinate_matrix.length = raw_data_matrix.length;
+		for (idx = 0; idx < raw_data_matrix.length; idx++) {
+			var item_array = raw_data_matrix[idx];
+			var item_time = item_array[0];
+			var item_value = item_array[1];
+
+			// 换算坐标(左上角0,0)
+			var x = (item_time - begin_time) * scale_x + BASE_PADDING_X;
+			var y = c_height - 2*BASE_PADDING_Y - ((item_value - min_value) * scale_y) + BASE_PADDING_Y;
+
+			var new_item_array = [];
+			new_item_array.length = 2;
+			new_item_array[0] = x;
+			new_item_array[1] = y;
+			coordinate_matrix[idx] = new_item_array;
+		}
+
+		console.log(coordinate_matrix);
+
+		return coordinate_matrix;
+	}
+
+	/*
+		根据二维数组数据绘画折线
+		参数 raw_data_matrix 为原始数据，方便在拐点标记文字
+		参数 coordinate_matrix 为x,y坐标的二维数组
+		[
+			[x1, y1],
+			[x2, y2],
+			...
+		]
+	*/
+	function paint_link(raw_data_matrix, coordinate_matrix) {
+		var c = document.getElementById("myCanvas");
+		var c_height = c.offsetHeight;
+		var c_width = c.offsetWidth
+		var ctx = c.getContext("2d");
+
+		// 设置背景颜色
+		ctx.fillStyle = CANVAS_BG_COLOR;
+		ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+		// 线条宽度
+		// ctx.lineWidth = 1
+
+		// 线条颜色
+		ctx.strokeStyle = CANVAS_LINE_COLOR;
+
+		// ctx.transform(1, 0, 0, -1, 0, c_height);	// 上下反转(文字会倒立)
+
+		// 根据坐标绘制折线
+		var idx = 0;
+		var last_y = 0;
+		for (idx = 0; idx < raw_data_matrix.length; idx ++) {
+			var item_raw_array = raw_data_matrix[idx];
+			var item_raw_time = item_raw_array[0];
+			var item_raw_value = item_raw_array[1];
+
+			var item_coo_array = coordinate_matrix[idx];
+			var item_coo_x = item_coo_array[0];
+			var item_coo_y = item_coo_array[1];
+
+			if (idx == 0) {
+				ctx.moveTo(item_coo_x, item_coo_y);
+			} else {
+				ctx.lineTo(item_coo_x, item_coo_y);
+			}
+
+			// 根据当前方向区分文字标记的位置
+			var y_deviation = TEXT_POSITION_DEVIATION;
+			if (last_y == 0 || item_coo_y <= last_y) {
+				// 当前方向向下，标记在下面
+				y_deviation *= -1;
+			} else if (last_y != 0 && item_coo_y > last_y) {
+				
+				// 当前方向向上，标记在上面
+			}
+			ctx.strokeText(item_raw_value, item_coo_x - TEXT_POSITION_DEVIATION, item_coo_y + y_deviation);
+
+			var last_y = item_coo_y;
+		}
+
+		ctx.stroke();
+	}
+
+	var data_raw_test = [
+		[1533768600000, 6543],
+		[1533769500000, 6421],
+		[1533771000000, 6510],
+		[1533771600000, 6330],
+		[1533772500000, 6483],
+		[1533772800000, 6280],
+		[1533774300000, 6375],
+		[1533774900000, 6310],
+		[1533775800000, 6521],
+		[1533776100000, 6473],
+		[1533776700000, 6560]
+	];
+
+	var data_raw = <<DATA_MATRIX_PLACE_HOLDER>>
+
+	coordinate_matrix = convert_raw_data_matrix_to_coordinate_matrix(data_raw);
+
+	paint_link(data_raw, coordinate_matrix);
+
+</script>
+
+</body>
+</html>
