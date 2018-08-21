@@ -564,6 +564,8 @@ public class Main {
             slist = KinkScanner.changeOrigKShape(slist, linkList);
 
             KLineChart.outputKLineChart("title ttt", slist, "bitmexxbtusd_change_shape_kline_chart.html");
+
+            KLineChart.outputPolylineChart(linkList, "poly_line_chart.html");
         } else {
             LogUtils.logDebugLine("kink_link usage:\n -m bitfinex -c eos -b usd -t 5m");
         }

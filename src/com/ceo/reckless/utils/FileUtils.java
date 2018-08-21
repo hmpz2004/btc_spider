@@ -25,6 +25,18 @@ public class FileUtils {
     public static final int S_IWOTH = 00002;
     public static final int S_IXOTH = 00001;
 
+    /**
+     * 获取当前执行的jar包所在绝对路径
+     * @return 包含了最后的斜杠
+     */
+    public static String getCurJarPath() {
+        String classPath = System.getProperty("java.class.path");
+        int firstIndex = classPath.lastIndexOf(System.getProperty("path.separator")) + 1;
+        int lastIndex = classPath.lastIndexOf(File.separator) + 1;
+        String jarDirPath = classPath.substring(firstIndex, lastIndex);
+        return jarDirPath;
+    }
+
     /** 在给定路径的后面附加文件或者目录。 */
     public static String pathAppend(String path, String more) {
         if (path == null) {
