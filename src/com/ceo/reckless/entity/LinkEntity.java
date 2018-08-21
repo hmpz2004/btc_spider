@@ -28,6 +28,22 @@ public class LinkEntity {
         return tgt.first.equals(first);
     }
 
+    public double getFirstValue() {
+        if (type == LinkEntity.TYPE_UP) {
+            return first.low;
+        } else {
+            return first.high;
+        }
+    }
+
+    public double getSecondValue() {
+        if (type == LinkEntity.TYPE_UP) {
+            return second.high;
+        } else {
+            return second.low;
+        }
+    }
+
     public String toOutputString() {
         double start = 0.0;
         double end = 0.0;
@@ -37,7 +53,6 @@ public class LinkEntity {
         if (item.type == LinkEntity.TYPE_UP) {
             start = item.first.low;
             end = item.second.high;
-
         } else if (item.type == LinkEntity.TYPE_DOWN) {
             start = item.first.high;
             end = item.second.low;

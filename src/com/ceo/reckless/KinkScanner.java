@@ -610,6 +610,9 @@ public class KinkScanner {
             // KLineChart.outputKLineChart("title ttt", slist, "btcquarter_change_shape_kline_chart.html");
             KLineChart.outputKLineChart("title ttt", slist, "bitmexxbtusd_change_shape_kline_chart.html");
 
+            // 绘制折线图
+            KLineChart.outputPolylineChart(linkList, "a.html");
+
         } catch (Exception e) {
             LogUtils.logError(e);
         }

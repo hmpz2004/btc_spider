@@ -16,6 +16,7 @@ public class Env {
     public static String Test_BASE_LINE_CHART_HTML_FILE_PATH = "./basic-line.html";
     public static String KLINE_CHART_HTML_FILE_PATH = "./candlestick-and-volume.html";
     public static String KLINE_SHRINK_CHART_HTML_FILE_PATH = "./candlestick-and-volume_double.html";
+    public static String CANVAS_POLY_LINE_HTML_FILE_PATH = "./canvas_poly_line.html";
 
     public static String BAR_CHART_HTML_DATA_PLACE_HOLDER = "<<BAR_DATA_PLACE_HOLDER>>";
     public static String LINE_CHART_HTML_DATA_PLACE_HOLDER = "<<LINE_DATA_PLACE_HOLDER>>";
@@ -23,4 +24,9 @@ public class Env {
     public static String KLINE_DOUBLE_CHART_HTML_DATA_PLACE_HOLDER = "<<KLINE_DATA_PLACE_HOLDER>>";
     public static String KLINE_DOUBLE_CHART_HTML_DATA_1_PLACE_HOLDER = "<<KLINE_DATA_1_PLACE_HOLDER>>";
     public static String KLINE_DOUBLE_CHART_HTML_DATA_2_PLACE_HOLDER = "<<KLINE_DATA_2_PLACE_HOLDER>>";
+
+    public static String CANVAS_LINE_COLOR_PLACE_HOLDER = "<<CANVAS_LINE_COLOR_PLACE_HOLDER>>";
+    public static String DATA_MATRIX_PLACE_HOLDER = "<<DATA_MATRIX_PLACE_HOLDER>>";
+
+    public static String CANVAS_COLOR_GREEN = "#90EE90";
 }

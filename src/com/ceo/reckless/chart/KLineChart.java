@@ -2,6 +2,7 @@ package com.ceo.reckless.chart;
 
 import com.ceo.reckless.Env;
 import com.ceo.reckless.entity.KEntity;
+import com.ceo.reckless.entity.LinkEntity;
 import com.ceo.reckless.utils.FileUtils;
 import com.ceo.reckless.utils.LogUtils;
 
@@ -10,17 +11,93 @@ import java.util.List;
 
 public class KLineChart {
 
+    public static void outputPolylineChart(List<LinkEntity> linkEntityList, String outputFileName) {
+
+        boolean DEBUG_POLY_LINE = true;
+
+        // 拼接成二维数组
+        StringBuilder matrixDataStringBuilder = new StringBuilder();
+        matrixDataStringBuilder.append("[");
+
+        int idx = 0;
+        for (LinkEntity itemLink : linkEntityList) {
+            long timeToWrite = 0;
+            double valueToWrite = 0;
+            if (idx == 0) {
+                timeToWrite = itemLink.first.timestamp;
+//                if (itemLink.type == LinkEntity.TYPE_UP) {
+//                    // 向上一笔,价格取low
+//                    valueToWrite = itemLink.first.low;
+//                } else {
+//                    // 向下一笔,价格取high
+//                    valueToWrite = itemLink.first.high;
+//                }
+                valueToWrite = itemLink.getFirstValue();
+                matrixDataStringBuilder.append("[");
+                matrixDataStringBuilder.append(timeToWrite);
+                matrixDataStringBuilder.append(",");
+                matrixDataStringBuilder.append(valueToWrite);
+                matrixDataStringBuilder.append("],\n");
+            }
+
+            timeToWrite = itemLink.second.timestamp;
+//            if (itemLink.type == LinkEntity.TYPE_UP) {
+//                // 向上一笔,价格取low
+//                valueToWrite = itemLink.second.low;
+//            } else {
+//                // 向下一笔,价格取high
+//                valueToWrite = itemLink.second.high;
+//            }
+            valueToWrite = itemLink.getSecondValue();
+
+            matrixDataStringBuilder.append("[");
+            matrixDataStringBuilder.append(timeToWrite);
+            matrixDataStringBuilder.append(",");
+            matrixDataStringBuilder.append(valueToWrite);
+            matrixDataStringBuilder.append("]");
+
+            if (idx != linkEntityList.size() - 1) {
+                // 不是最后一个
+                matrixDataStringBuilder.append(",");
+            }
+            matrixDataStringBuilder.append("\n");
+
+            idx++;
+        }
+
+        matrixDataStringBuilder.append("]");
+
+        String matrixString = matrixDataStringBuilder.toString();
+        if (DEBUG_POLY_LINE) {
+            LogUtils.logDebugLine(matrixString);
+        }
+
+        byte[] polyLineHtmlFileBytes = FileUtils.readFileByte(new File(Env.CANVAS_POLY_LINE_HTML_FILE_PATH));
+        if (polyLineHtmlFileBytes != null && polyLineHtmlFileBytes.length != 0) {
+            String polyLineHtmlFileString = new String(polyLineHtmlFileBytes);
+
+            polyLineHtmlFileString = polyLineHtmlFileString.replace(Env.CANVAS_LINE_COLOR_PLACE_HOLDER, Env.CANVAS_COLOR_GREEN);
+            polyLineHtmlFileString = polyLineHtmlFileString.replace(Env.DATA_MATRIX_PLACE_HOLDER, matrixString);
+
+            FileUtils.writeByteFile(polyLineHtmlFileString.getBytes(), new File(outputFileName));
+        } else {
+            LogUtils.logDebugLine("outputKLineShrinkChart() read bar html null");
+        }
+    }
+
     /**
      * js报表不要超过166个k线数据
      *
      */
     public static void outputKLineChart(String htmlTitle, List<KEntity> kEntityList1, String outputFileName) {
 
+        int LIMIT = kEntityList1.size();
+
         StringBuilder sb1 = new StringBuilder();
         int i = 0, j = 0;
         sb1.append("[\n");
-        j = (kEntityList1.size() - 166) > 0 ? kEntityList1.size() - 166 : 0;
-        for (j = kEntityList1.size() - 166; j < kEntityList1.size(); j++) {
+        j = (kEntityList1.size() - LIMIT) > 0 ? kEntityList1.size() - LIMIT : 0;
+        for (j = kEntityList1.size() - LIMIT; j < kEntityList1.size(); j++) {
             KEntity kItem = kEntityList1.get(j);
             if (i++ != 0) {
                 sb1.append(",\n");
@@ -60,7 +137,7 @@ public class KLineChart {
      */
     public static void outputKLineShrinkChart(String htmlTitle, List<KEntity> kEntityList1, List<KEntity> kEntityList2, String outputFileName) {
 
-        int LIMIT = 150;
+        int LIMIT = 500;
 
         StringBuilder sb1 = new StringBuilder();
         int i = 0, j = 0;
@@ -72,7 +149,7 @@ public class KLineChart {
                 sb1.append(",\n");
             }
             // date open high low close
-            sb1.append("[" + String.valueOf(kItem.timestamp) + "," +
+            sb1.append("[" + String.valueOf(kItem.timestamp*1000) + "," +// jschar的时间戳要到毫秒
                     kItem.open  + "," +
                     kItem.high  + "," +
                     kItem.low  + "," +
@@ -92,7 +169,7 @@ public class KLineChart {
                 sb2.append(",\n");
             }
             // date open high low close
-            sb2.append("[" + String.valueOf(kItem.timestamp) + "," +
+            sb2.append("[" + String.valueOf(kItem.timestamp*1000) + "," +
                     kItem.open  + "," +
                     kItem.high  + "," +
                     kItem.low  + "," +
