@@ -72,16 +72,21 @@ public class KLineChart {
             LogUtils.logDebugLine(matrixString);
         }
 
-        byte[] polyLineHtmlFileBytes = FileUtils.readFileByte(new File(Env.CANVAS_POLY_LINE_HTML_FILE_PATH));
+        // 获取当前jar包所在路径
+        String jarDirPath = FileUtils.getCurJarPath();
+        LogUtils.logDebugLine(jarDirPath);
+
+        byte[] polyLineHtmlFileBytes = FileUtils.readFileByte(new File(jarDirPath + Env.CANVAS_POLY_LINE_HTML_FILE_NAME));
         if (polyLineHtmlFileBytes != null && polyLineHtmlFileBytes.length != 0) {
             String polyLineHtmlFileString = new String(polyLineHtmlFileBytes);
 
-            polyLineHtmlFileString = polyLineHtmlFileString.replace(Env.CANVAS_LINE_COLOR_PLACE_HOLDER, Env.CANVAS_COLOR_GREEN);
+            polyLineHtmlFileString = polyLineHtmlFileString.replace(Env.CANVAS_UP_LINE_COLOR_PLACE_HOLDER, Env.CANVAS_COLOR_GREEN);
+            polyLineHtmlFileString = polyLineHtmlFileString.replace(Env.CANVAS_DOWN_LINE_COLOR_PLACE_HOLDER, Env.CANVAS_COLOR_RED);
             polyLineHtmlFileString = polyLineHtmlFileString.replace(Env.DATA_MATRIX_PLACE_HOLDER, matrixString);
 
-            FileUtils.writeByteFile(polyLineHtmlFileString.getBytes(), new File(outputFileName));
+            FileUtils.writeByteFile(polyLineHtmlFileString.getBytes(), new File(jarDirPath + outputFileName));
         } else {
-            LogUtils.logDebugLine("outputKLineShrinkChart() read bar html null");
+            LogUtils.logDebugLine("outputKLineShrinkChart() read poly html null");
         }
     }
 

@@ -27,8 +27,12 @@ public class Env {
     public static String KLINE_DOUBLE_CHART_HTML_DATA_1_PLACE_HOLDER = "<<KLINE_DATA_1_PLACE_HOLDER>>";
     public static String KLINE_DOUBLE_CHART_HTML_DATA_2_PLACE_HOLDER = "<<KLINE_DATA_2_PLACE_HOLDER>>";
 
-    public static String CANVAS_LINE_COLOR_PLACE_HOLDER = "<<CANVAS_LINE_COLOR_PLACE_HOLDER>>";
+    public static String CANVAS_UP_LINE_COLOR_PLACE_HOLDER = "<<CANVAS_UP_LINE_COLOR_PLACE_HOLDER>>";
+    public static String CANVAS_DOWN_LINE_COLOR_PLACE_HOLDER = "<<CANVAS_DOWN_LINE_COLOR_PLACE_HOLDER>>";
+
+
     public static String DATA_MATRIX_PLACE_HOLDER = "<<DATA_MATRIX_PLACE_HOLDER>>";
 
     public static String CANVAS_COLOR_GREEN = "#90EE90";
+    public static String CANVAS_COLOR_RED = "#FF6A6A";
 }
