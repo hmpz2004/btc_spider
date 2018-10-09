@@ -1,5 +1,7 @@
 package com.ceo.reckless.entity;
 
+import com.ceo.reckless.utils.TimeUtils;
+
 public class KEntity {
     public long timestamp;
     public double open;
@@ -18,5 +20,11 @@ public class KEntity {
                 .concat("\t").concat(String.valueOf(low))
                 .concat("\t").concat(String.valueOf(close))
                 .concat("\t").concat(String.valueOf(volume));
+    }
+
+    public String toOutputString() {
+        //<<>>
+        String fmt = "%15s %5f %10f %10f %10f %10f %15f";
+        return String.format(fmt, TimeUtils.convertTimeFormat1(timestamp), bull_vs_short, open, high, low, close, volume);
     }
 }

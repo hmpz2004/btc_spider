@@ -12,6 +12,11 @@ import java.util.List;
 public class KLineChart {
 
     public static void outputPolylineChart(List<LinkEntity> linkEntityList, String outputFileName) {
+        // 给线上服务器用的
+        outputPolylineChart(linkEntityList, outputFileName, false);
+    }
+
+    public static void outputPolylineChart(List<LinkEntity> linkEntityList, String outputFileName, boolean localOutput) {
 
         boolean DEBUG_POLY_LINE = true;
 
@@ -76,7 +81,10 @@ public class KLineChart {
         String jarDirPath = FileUtils.getCurJarPath();
         LogUtils.logDebugLine(jarDirPath);
 
-        byte[] polyLineHtmlFileBytes = FileUtils.readFileByte(new File(jarDirPath + Env.CANVAS_POLY_LINE_HTML_FILE_NAME));
+        String htmlInputFilePath = localOutput ? Env.CANVAS_POLY_LINE_HTML_FILE_PATH : jarDirPath + Env.CANVAS_POLY_LINE_HTML_FILE_NAME;
+        String outputFilePath = localOutput ? outputFileName : jarDirPath + outputFileName;
+
+        byte[] polyLineHtmlFileBytes = FileUtils.readFileByte(new File(htmlInputFilePath));
         if (polyLineHtmlFileBytes != null && polyLineHtmlFileBytes.length != 0) {
             String polyLineHtmlFileString = new String(polyLineHtmlFileBytes);
 
@@ -84,9 +92,9 @@ public class KLineChart {
             polyLineHtmlFileString = polyLineHtmlFileString.replace(Env.CANVAS_DOWN_LINE_COLOR_PLACE_HOLDER, Env.CANVAS_COLOR_RED);
             polyLineHtmlFileString = polyLineHtmlFileString.replace(Env.DATA_MATRIX_PLACE_HOLDER, matrixString);
 
-            FileUtils.writeByteFile(polyLineHtmlFileString.getBytes(), new File(jarDirPath + outputFileName));
+            FileUtils.writeByteFile(polyLineHtmlFileString.getBytes(), new File(outputFilePath));
         } else {
-            LogUtils.logDebugLine("outputKLineShrinkChart() read poly html null");
+            LogUtils.logDebugLine("outputPolylineChart() read poly html null");
         }
     }
 

@@ -8,6 +8,7 @@ import com.ceo.reckless.utils.HttpUrlParamBuilder;
 import com.ceo.reckless.utils.LogUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import sun.security.jgss.krb5.Krb5NameElement;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,7 +17,7 @@ import java.util.Map;
 
 public class XueqiuDataHelper {
 
-    private static boolean XUEQIU_DEBUG = false;
+    private static boolean XUEQIU_DEBUG = true;
 
     public static String INDEX_URL = "https://xueqiu.com";
 
@@ -24,7 +25,8 @@ public class XueqiuDataHelper {
     // 个股参数
 
     // 个股K线(港股A股通用)
-    public static String K_LINE_URL = "https://xueqiu.com/stock/forchartk/stocklist.json";
+    // 老的url : "https://xueqiu.com/stock/forchartk/stocklist.json";
+    public static String K_LINE_URL = "https://stock.xueqiu.com/v5/stock/chart/kline.json";
 
     // 个股信息
     public static String STOCK_INFO_URL = "https://xueqiu.com/v4/stock/quote.json";
@@ -35,12 +37,15 @@ public class XueqiuDataHelper {
     public static final String PARAM_KEY_BEGIN = "begin";
     public static final String PARAM_KEY_END = "end";
     public static final String PARAM_KEY_COUNT = "count";
+    public static final String PARAM_KEY_INDICATOR = "indicator";
+    public static final String PARAM_VALUE_INDICATOR = "kline,ma,macd";
 
     // A股类型齐全
     // 港股只有分时、日线、周线、月线
-    public static final String PERIOD_1_DAY = "1day";
-    public static final String PERIOD_1_WEEK = "1week";
-    public static final String PERIOD_1_MONTH = "1month";
+    //<<>>type发生了变化,需要逐个check一下
+    public static final String PERIOD_1_DAY = "day";
+    public static final String PERIOD_1_WEEK = "week";
+    public static final String PERIOD_1_MONTH = "month";
     public static final String PERIOD_1_MIN = "1m";
     public static final String PERIOD_5_MIN = "5m";
     public static final String PERIOD_15_MIN = "15m";
@@ -50,20 +55,36 @@ public class XueqiuDataHelper {
 
     public static Map<String, String> periodTypeMap = new HashMap<>();
 
+    // 存储type字符串和真实对应时长的映射
+    public static Map<String, Long> periodTypeTimeIntervalMap = new HashMap<>();
+
+    public static final long ONE_SECOND = 1000L;
+    // 默认请求的k线的个数
+    public static final int DEFAULT_K_NUM = 500;
+
     static {
         periodTypeMap.put("0", PERIOD_REAL_TIME);// 分时
+        periodTypeTimeIntervalMap.put("0", ONE_SECOND);
         periodTypeMap.put("1m", PERIOD_1_MIN);// 1分
+        periodTypeTimeIntervalMap.put("1m", 60*ONE_SECOND);
         periodTypeMap.put("5m", PERIOD_5_MIN);// 5分
+        periodTypeTimeIntervalMap.put("5m", 5*60*ONE_SECOND);
         periodTypeMap.put("15m", PERIOD_15_MIN);// 15分
+        periodTypeTimeIntervalMap.put("15m", 15*60*ONE_SECOND);
         periodTypeMap.put("30m", PERIOD_30_MIN);// 30分
+        periodTypeTimeIntervalMap.put("30m", 30*60*ONE_SECOND);
         periodTypeMap.put("1h", PERIOD_60_MIN);// 1小时
+        periodTypeTimeIntervalMap.put("1h", 60*60*ONE_SECOND);
         periodTypeMap.put("1d", PERIOD_1_DAY);// 1天
+        periodTypeTimeIntervalMap.put("1d", 24*60*60*ONE_SECOND);
         periodTypeMap.put("1w", PERIOD_1_WEEK);// 1周
+        periodTypeTimeIntervalMap.put("1w", 7*24*60*60*ONE_SECOND);
     }
 
     public static final String TYPE_NORMAL = "normal";
+    public static final String TYPE_BEFORE = "before";
 
-    public static final long BEGIN_INTERVAL = 365 * 24 * 3600 * 1000L;
+    public static final long BEGIN_INTERVAL = 5 * 24 * 3600 * ONE_SECOND;
 
     // -------------------------------------------
     // 股市行情参数
@@ -125,14 +146,20 @@ public class XueqiuDataHelper {
             endTimeStamp = cur;
         }
 
-        long begin = cur - BEGIN_INTERVAL;
+        // 根据请求k的根数计算k线的begin time
+        long defaultBeginInterval = periodTypeTimeIntervalMap.get(periodType);
+        long inter = DEFAULT_K_NUM * defaultBeginInterval;
+
+        long begin = cur - inter;
         HttpUrlParamBuilder ut = new HttpUrlParamBuilder();
         ut.appendParam(PARAM_KEY_SYMBOL, symbol);
-        ut.appendParam(PARAM_KEY_PERIOD, period);
-        ut.appendParam(PARAM_KEY_TYPE, TYPE_NORMAL);
         ut.appendParam(PARAM_KEY_BEGIN, String.valueOf(begin));
-        ut.appendParam(PARAM_KEY_END, String.valueOf(endTimeStamp));
-        ut.appendParam(PARAM_KEY_COUNT, String.valueOf(240));
+        ut.appendParam(PARAM_KEY_PERIOD, period);
+        ut.appendParam(PARAM_KEY_TYPE, TYPE_BEFORE);
+        // 新版url可以不传end
+        // ut.appendParam(PARAM_KEY_END, String.valueOf(endTimeStamp));
+        ut.appendParam(PARAM_KEY_COUNT, "-" + DEFAULT_K_NUM);
+        ut.appendParam(PARAM_KEY_INDICATOR, PARAM_VALUE_INDICATOR);
 
         String urlParamString = ut.formatUrlParamString();
 
@@ -306,19 +333,33 @@ public class XueqiuDataHelper {
 
                 JSONObject joTotal = new JSONObject(jsonContentString);
 
-                if (joTotal.has("stock") && joTotal.has("success") && joTotal.has("chartlist")) {
-                    JSONArray jaChartList = joTotal.getJSONArray("chartlist");
-                    for (int i = 0; i < jaChartList.length(); i++) {
-                        KEntity ke = new KEntity();
-                        JSONObject joItem = jaChartList.getJSONObject(i);
-                        ke.timestamp = joItem.getLong("timestamp");
-                        ke.volume = joItem.getDouble("volume");
-                        ke.open = joItem.getDouble("open");
-                        ke.high = joItem.getDouble("high");
-                        ke.close = joItem.getDouble("close");
-                        ke.low = joItem.getDouble("low");
-                        resultList.add(ke);
+                if (joTotal.has("data") && joTotal.has("error_code") && joTotal.has("error_description")) {
+
+                    int errorCode = joTotal.getInt("error_code");
+                    if (errorCode != 0) {
+                        // 输出response中的错误desc
+                        LogUtils.logDebugLine("request error : " + joTotal.getString("error_description"));
+                        return resultList;
                     }
+                    JSONObject joData = joTotal.getJSONObject("data");
+                    if (joData != null) {
+                        JSONArray jaItem = joData.getJSONArray("item");
+                        for (int i = 0; i < jaItem.length(); i++) {
+                            KEntity ke = new KEntity();
+                            JSONArray jaValue = jaItem.getJSONArray(i);
+                            if (jaValue.length() < 6) {
+                                continue;
+                            }
+                            ke.timestamp = jaValue.getLong(0);
+                            ke.volume = jaValue.getDouble(1);
+                            ke.open = jaValue.getDouble(2);
+                            ke.high = jaValue.getDouble(3);
+                            ke.low = jaValue.getDouble(4);
+                            ke.close = jaValue.getDouble(5);
+                            resultList.add(ke);
+                        }
+                    }
+
                     return resultList;
                 }
             }
@@ -433,9 +474,17 @@ public class XueqiuDataHelper {
 
 //        testCookie1();
 
-//        requestStockDefaultKLine("SH603517", PERIOD_30_MIN);
+//        List<KEntity> l0 = requestStockDefaultKLine("SH603517", PERIOD_30_MIN);
+//        l0.size();
 //        requestStockDefaultKLine("08205", PERIOD_REAL_TIME);
-        requestHKStockDefaultRankList(ORDERBY_PERCENT);
+        List<KEntity> l = requestStockDefaultKLine("00700", "1d");
+        l.size();
+
+        for (KEntity i : l) {
+            LogUtils.logDebugLine(i.toOutputString());
+        }
+
+//        requestHKStockDefaultRankList(ORDERBY_PERCENT);
 //        requestAStockDefaultRankList(ORDERBY_PERCENT);
     }
 }

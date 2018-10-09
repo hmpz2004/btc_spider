@@ -6,6 +6,7 @@ import com.ceo.reckless.entity.LinkEntity;
 import com.ceo.reckless.helper.AicoinDataHelper;
 import com.ceo.reckless.helper.HexunDataHelper;
 import com.ceo.reckless.helper.SosobtcDataHelper;
+import com.ceo.reckless.helper.XueqiuDataHelper;
 import com.ceo.reckless.utils.FileUtils;
 import com.ceo.reckless.utils.LogUtils;
 import com.sun.javafx.scene.control.behavior.SplitMenuButtonBehavior;
@@ -611,7 +612,7 @@ public class KinkScanner {
             KLineChart.outputKLineChart("title ttt", slist, "bitmexxbtusd_change_shape_kline_chart.html");
 
             // 绘制折线图
-            KLineChart.outputPolylineChart(linkList, "a.html");
+            KLineChart.outputPolylineChart(linkList, "a.html", true);
 
         } catch (Exception e) {
             LogUtils.logError(e);
@@ -653,10 +654,32 @@ public class KinkScanner {
         }
     }
 
+    public static void testXueqiu() {
+        try {
+            String sym = "00700";
+            List<KEntity> kEntityList = XueqiuDataHelper.requestStockDefaultKLine(sym, XueqiuDataHelper.PERIOD_30_MIN);
+            LogUtils.logDebugLine("sym : " + sym);
+            LogUtils.logDebugLine("len : " + kEntityList.size());
+
+            List<KEntity> slist = shrinkKLine(kEntityList);
+
+
+            int[] markArray = markTopBottomShape(slist);
+            List<LinkEntity> linkList = processMarkTypeArray(slist, markArray);
+            // slist = changeOrigKShape(slist, linkList);
+
+            KLineChart.outputPolylineChart(linkList, "hk_stock_tencent_canvas_chart.html", true);
+        } catch (Exception e) {
+            LogUtils.logError(e);
+        }
+    }
+
     public static void main(String[] args) {
 
-        testBtc();
+//        testBtc();
 
 //        testHexun();
+
+        testXueqiu();
     }
 }
